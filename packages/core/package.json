@@ -1,7 +1,7 @@
 {
   "name": "@open-hive/core",
   "version": "0.0.1",
-  "private": true,
+  "private": false,
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,6 +14,7 @@
     }
   },
   "dependencies": {
+    "js-yaml": "^4.1.0",
     "tslib": "^2.3.0"
   }
 }

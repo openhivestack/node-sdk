@@ -1,4 +1,3 @@
-export * from './capability.interface';
-export * from './capability-schema.interface';
-export * from './hive-config.interface';
-export * from './hive-error.enum';
+export * from './agent-capability.interface';
+export * from './agent-config.interface';
+export * from './hive-error-type.enum';

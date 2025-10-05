@@ -1,7 +1,7 @@
 /**
  * Error codes aligned with H.I.V.E. Protocol specification
  */
-export enum HiveErrorCode {
+export enum HiveErrorType {
   INVALID_SIGNATURE = 'invalid_signature',
   CAPABILITY_NOT_FOUND = 'capability_not_found',
   INVALID_PARAMETERS = 'invalid_parameters',
@@ -10,5 +10,6 @@ export enum HiveErrorCode {
   RATE_LIMITED = 'rate_limited',
   INVALID_MESSAGE_FORMAT = 'invalid_message_format',
   AGENT_NOT_FOUND = 'agent_not_found',
-  CONFIG_ERROR = 'config_error' // Additional error for configuration issues
+  CONFIG_ERROR = 'config_error', // Additional error for configuration issues
+  TASK_ERROR = 'task_error',
 }

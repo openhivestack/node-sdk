@@ -2247,22 +2247,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@open-hive/registry@workspace:packages/registry":
-  version: 0.0.0-use.local
-  resolution: "@open-hive/registry@workspace:packages/registry"
-  dependencies:
-    tslib: "npm:^2.3.0"
-  peerDependencies:
-    "@nestjs/common": ^10.0.0
-    "@nestjs/core": ^10.0.0
-  peerDependenciesMeta:
-    "@nestjs/common":
-      optional: true
-    "@nestjs/core":
-      optional: true
-  languageName: unknown
-  linkType: soft
-
 "@open-hive/source@workspace:.":
   version: 0.0.0-use.local
   resolution: "@open-hive/source@workspace:."
