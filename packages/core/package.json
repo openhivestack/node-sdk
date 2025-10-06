@@ -12,6 +12,27 @@
       "default": "./dist/index.js"
     }
   },
+  "keywords": [
+    "hive",
+    "protocol",
+    "agent",
+    "sdk",
+    "typescript",
+    "nodejs"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openhivestack/openhive"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "package.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "js-yaml": "^4.1.0",
     "tslib": "^2.3.0"
