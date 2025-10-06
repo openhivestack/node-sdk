@@ -12,7 +12,7 @@ id: 'hive:agentid:test123'
 name: 'Test Agent'
 description: 'Test agent for unit tests'
 version: '1.0.0'
-port: 3000
+port: 11100
 logLevel: 'info'
 capabilities:
   - id: 'text-processing'
@@ -34,7 +34,7 @@ capabilities:
     const config = new Config('test.yml');
     expect(config.agentId()).toBe('hive:agentid:test123');
     expect(config.name()).toBe('Test Agent');
-    expect(config.port()).toBe(3000);
+    expect(config.port()).toBe(11100);
     expect(config.capabilities()).toHaveLength(1);
     expect(config.hasCapability('text-processing')).toBe(true);
   });
@@ -63,6 +63,7 @@ capabilities:
   it('should throw error for missing capabilities', () => {
     mockedFs.readFileSync.mockReturnValue(`
       id: 'hive:agentid:test123'
+      version: '1.0.0'
       name: 'Test Agent'
       description: 'Test description'
       capabilities: []
@@ -84,6 +85,7 @@ capabilities:
   it('should apply default values', () => {
     mockedFs.readFileSync.mockReturnValue(`
       id: 'hive:agentid:test123'
+      version: '1.0.0'
       name: 'Test Agent'
       description: 'Test description'
       capabilities:
@@ -93,8 +95,7 @@ capabilities:
     `);
     
     const config = new Config('test.yml');
-    expect(config.port()).toBe(3000); // Default value
+    expect(config.port()).toBe(11100); // Default value
     expect(config.logLevel()).toBe('info'); // Default value
-    expect(config.version()).toBe('1.0.0'); // Default value
   });
 });
