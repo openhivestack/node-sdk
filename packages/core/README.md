@@ -1,11 +1,58 @@
-# core
+# H.I.V.E. Protocol Core
 
-This library was generated with [Nx](https://nx.dev).
+Core library for implementing H.I.V.E. Protocol compliant agents.
 
-## Building
+## Features
 
-Run `nx build core` to build the library.
+- **Message Handling**: Create and validate H.I.V.E. protocol messages
+- **Cryptography**: Ed25519 key generation, signing, and verification
+- **Agent Management**: Agent identity and capability management
+- **Configuration**: Load and validate agent configuration
 
-## Running unit tests
+## Installation
 
-Run `nx test core` to execute the unit tests via [Jest](https://jestjs.io).
+```bash
+npm install @openhive/core
+```
+
+## Usage
+
+### Creating an Agent
+
+```typescript
+import { HiveConfig, HiveAgent, HiveCrypto } from '@openhive/core';
+
+// Load configuration from .hive.yml
+const config = new HiveConfig();
+
+// Generate keys or load existing ones
+const { publicKey, privateKey } = HiveCrypto.generateKeyPair();
+
+// Create agent
+const agent = new HiveAgent(config, privateKey, publicKey);
+```
+
+### Sending Messages
+
+```typescript
+// Create a task request
+const taskRequest = agent.createTaskRequest(
+  'hive:agentid:recipient',
+  'text-translation',
+  { text: 'Hello world', target_lang: 'es' }
+);
+
+// Create a capability query
+const capabilityQuery = agent.createCapabilityQuery('hive:agentid:recipient');
+```
+
+### Processing Messages
+
+```typescript
+// Process incoming message
+try {
+  agent.processMessage(incomingMessage, senderPublicKey);
+} catch (error) {
+  console.error('Message processing failed:', error.message);
+}
+```
