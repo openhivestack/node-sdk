@@ -2243,6 +2243,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@open-hive/core@workspace:packages/core"
   dependencies:
+    js-yaml: "npm:^4.1.0"
     tslib: "npm:^2.3.0"
   languageName: unknown
   linkType: soft
