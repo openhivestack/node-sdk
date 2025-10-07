@@ -3,8 +3,11 @@ export {
   HiveError,
   Crypto as HiveCrypto,
   Message as HiveMessage,
-  Agent as HiveAgent,
+  AgentIdentity as HiveAgentIdentity,
 } from './utils';
+
+export * from './agent';
+export * from './agent-http-server';
 
 export type {
   IAgentCapability,

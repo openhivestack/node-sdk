@@ -1,4 +1,4 @@
-# Openhive
+# Openhive (node-sdk)
 
 This repository contains the official TypeScript/JavaScript SDKs for the **[H.I.V.E. Protocol](https://github.com/openhivestack/protocol)**. It provides a set of tools and packages to help developers build and integrate AI agents with the H.I.V.E. ecosystem.
 
@@ -11,7 +11,6 @@ This workspace is a monorepo managed by [Nx](https://nx.dev). It contains the fo
 | Package               | Description                                                              |
 | --------------------- | ------------------------------------------------------------------------ |
 | `@open-hive/core`     | Core types, interfaces, and error definitions for the H.I.V.E. protocol. |
-| `@open-hive/registry` | A simple, in-memory agent registry with adapters for NestJS and Next.js. |
 
 ## 🚀 Getting Started
 

@@ -10,15 +10,15 @@ import { HiveError } from './hive-error';
 import { Message } from './message';
 
 /**
- * Agent class for H.I.V.E. Protocol agent functionality
+ * AgentIdentity class for H.I.V.E. Protocol agent functionality
  */
-export class Agent {
+export class AgentIdentity {
   private config: Config;
   private privateKey: string;
   private publicKey: string;
 
   /**
-   * Create a new H.I.V.E. agent
+   * Create a new H.I.V.E. agent identity
    * 
    * @param config - Agent configuration
    * @param privateKey - Ed25519 private key in PEM format
@@ -31,14 +31,14 @@ export class Agent {
   }
 
   /**
-   * Create a new agent with a fresh key pair
+   * Create a new agent identity with a fresh key pair
    * 
    * @param config - Agent configuration
-   * @returns New Agent instance
+   * @returns New AgentIdentity instance
    */
-  static create(config: Config): Agent {
+  static create(config: Config): AgentIdentity {
     const { publicKey, privateKey } = Crypto.generateKeyPair();
-    return new Agent(config, privateKey, publicKey);
+    return new AgentIdentity(config, privateKey, publicKey);
   }
 
   /**

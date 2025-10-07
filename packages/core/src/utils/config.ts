@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { IAgentConfig, IAgentCapability, HiveErrorType } from '../types';
-import { HiveError } from '../utils';
+import { HiveError } from '.';
 
 /**
  * Config class for loading and validating H.I.V.E. agent configuration
@@ -16,13 +16,17 @@ export class Config {
   private config: IAgentConfig;
 
   /**
-   * Load configuration from a .hive.yml file
+   * Create a new Config instance
    *
-   * @param configPath Path to the .hive.yml file (optional, defaults to .hive.yml in current directory)
+   * @param config - Either a path to a .hive.yml file or an IAgentConfig object
    */
-  constructor(configPath?: string) {
-    const filePath = configPath || path.join(process.cwd(), '.hive.yml');
-    this.config = this.loadConfigFile(filePath);
+  constructor(config?: string | IAgentConfig) {
+    if (typeof config === 'string' || config === undefined) {
+      const filePath = config || path.join(process.cwd(), '.hive.yml');
+      this.config = this.loadConfigFile(filePath);
+    } else {
+      this.config = this.validateConfig(config);
+    }
   }
 
   /**
@@ -63,7 +67,10 @@ export class Config {
    */
   private validateConfig(config: Partial<IAgentConfig>): IAgentConfig {
     // Apply defaults
-    const mergedConfig = { ...Config.DEFAULT_CONFIG, ...config } as IAgentConfig;
+    const mergedConfig = {
+      ...Config.DEFAULT_CONFIG,
+      ...config,
+    } as IAgentConfig;
 
     // Validate required fields
     if (!mergedConfig.id) {
