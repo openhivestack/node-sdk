@@ -57,21 +57,21 @@ export class AgentHttpServer {
             responseData.message,
             responseData.retry
           );
-          res.status(500).json(responseMessage);
+          return res.status(500).json(responseMessage);
         } else {
           responseMessage = identity.createTaskResult(
             message.from,
             responseData.task_id,
             responseData.result
           );
-          res.status(200).json(responseMessage);
+          return res.status(200).json(responseMessage);
         }
       } catch (error) {
         const errorMessage =
           error instanceof Error
             ? error.message
             : 'A critical server error occurred';
-        res.status(500).json({ error: errorMessage });
+        return res.status(500).json({ error: errorMessage });
       }
     });
   }

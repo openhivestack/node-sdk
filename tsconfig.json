@@ -4,7 +4,7 @@
   "files": [],
   "references": [
     {
-      "path": "./sdks/node/core"
+      "path": "./packages/core"
     }
   ]
 }
