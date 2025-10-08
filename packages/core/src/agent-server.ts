@@ -3,7 +3,7 @@ import bodyParser from 'body-parser';
 import { Agent } from './agent.js';
 import { IHiveMessage } from './types/index.js';
 
-export class AgentHttpServer {
+export class AgentServer {
   private app: Express;
 
   constructor(private agent: Agent) {

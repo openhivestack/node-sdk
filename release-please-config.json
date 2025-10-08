@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    "packages/core": {
+      "package-name": "@open-hive/core",
+      "component": "core",
+      "release-type": "node"
+    }
+  },
+  "skip-changelog": true,
+  "bootstrap-sha": "15151e188a0889988b93a4b0f7719280e81e828a"
+}

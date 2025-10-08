@@ -9,7 +9,7 @@ import {
 } from './types';
 import { AgentIdentity, Crypto } from './utils';
 import { Config } from './utils/config';
-import { AgentHttpServer } from './agent-http-server.js';
+import { AgentServer } from './agent-server.js';
 
 type CapabilityHandler = (
   params: Record<string, any>
@@ -118,7 +118,7 @@ export class Agent {
     return this.config.port();
   }
 
-  public createServer(): AgentHttpServer {
-    return new AgentHttpServer(this);
+  public createServer(): AgentServer {
+    return new AgentServer(this);
   }
 }
