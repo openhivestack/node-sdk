@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+import Handlebars from 'handlebars';
+import dotenv from 'dotenv';
 import { IAgentConfig, IAgentCapability, HiveErrorType } from '../types';
 import { HiveError } from '.';
 
@@ -8,9 +10,16 @@ import { HiveError } from '.';
  * Config class for loading and validating H.I.V.E. agent configuration
  */
 export class Config {
-  private static DEFAULT_CONFIG: Partial<IAgentConfig> = {
-    port: 11100,
+  private static DEFAULT_CONFIG: IAgentConfig = {
+    endpoint: 'http://localhost:11100',
     logLevel: 'info',
+    capabilities: [],
+    id: '',
+    name: '',
+    description: '',
+    version: '',
+    publicKey: '',
+    env: '.env',
   };
 
   private config: IAgentConfig;
@@ -34,6 +43,9 @@ export class Config {
    */
   private loadConfigFile(filePath: string): IAgentConfig {
     try {
+      const envPath = this.config.env || '.env';
+      const env = dotenv.config({ path: path.join(process.cwd(), envPath) }).parsed;
+      
       // Check if file exists
       if (!fs.existsSync(filePath)) {
         throw new HiveError(
@@ -44,7 +56,11 @@ export class Config {
 
       // Read and parse YAML
       const fileContent = fs.readFileSync(filePath, 'utf8');
-      const parsedConfig = yaml.load(fileContent) as Partial<IAgentConfig>;
+      const template = Handlebars.compile(fileContent);
+      const compiledConfig = template({
+        env: Object.fromEntries(Object.entries(env || {}).filter(([key]) => key.startsWith('HIVE_'))),
+      });
+      const parsedConfig = yaml.load(compiledConfig) as IAgentConfig;
 
       // Apply defaults and validate
       return this.validateConfig(parsedConfig);
@@ -73,7 +89,7 @@ export class Config {
     } as IAgentConfig;
 
     // Validate required fields
-    if (!mergedConfig.id) {
+    if (mergedConfig.id?.length === 0) {
       throw new HiveError(
         HiveErrorType.CONFIG_ERROR,
         'Missing required field: id'
@@ -81,28 +97,28 @@ export class Config {
     }
 
     // Validate agent ID format (hive:agentid:*)
-    if (!mergedConfig.id.startsWith('hive:agentid:')) {
+    if (!mergedConfig.id?.startsWith('hive:agentid:')) {
       throw new HiveError(
         HiveErrorType.CONFIG_ERROR,
         `Invalid agent ID format: ${mergedConfig.id}. Must start with 'hive:agentid:'`
       );
     }
 
-    if (!mergedConfig.name) {
+    if (mergedConfig.name?.length === 0) {
       throw new HiveError(
         HiveErrorType.CONFIG_ERROR,
         'Missing required field: name'
       );
     }
 
-    if (!mergedConfig.description) {
+    if (mergedConfig.description?.length === 0) {
       throw new HiveError(
         HiveErrorType.CONFIG_ERROR,
         'Missing required field: description'
       );
     }
 
-    if (!mergedConfig.version) {
+    if (mergedConfig.version?.length === 0) {
       throw new HiveError(
         HiveErrorType.CONFIG_ERROR,
         'Missing required field: version'
@@ -122,21 +138,21 @@ export class Config {
 
     // Validate each capability
     mergedConfig.capabilities.forEach((capability) => {
-      if (!capability.id) {
+      if (capability.id?.length === 0) {
         throw new HiveError(
           HiveErrorType.CONFIG_ERROR,
           'Capability missing required field: id'
         );
       }
 
-      if (!capability.input || typeof capability.input !== 'object') {
+      if (capability.input?.length === 0 || typeof capability.input !== 'object') {
         throw new HiveError(
           HiveErrorType.CONFIG_ERROR,
           `Capability "${capability.id}" missing required field: input`
         );
       }
 
-      if (!capability.output || typeof capability.output !== 'object') {
+      if (capability.output?.length === 0 || typeof capability.output !== 'object') {
         throw new HiveError(
           HiveErrorType.CONFIG_ERROR,
           `Capability "${capability.id}" missing required field: output`
@@ -185,8 +201,8 @@ export class Config {
   /**
    * Get server port
    */
-  public port(): number {
-    return this.config.port;
+  public endpoint(): string {
+    return this.config.endpoint;
   }
 
   /**

@@ -5,7 +5,7 @@ The official core library for building agents on the H.I.V.E. Protocol. This pac
 ## Features
 
 - **High-Level Agent Class**: A simple, powerful `Agent` class to get started in minutes.
-- **Flexible Deployment**: A decoupled `AgentHttpServer` allows you to run the agent as a standalone server or integrate its logic into existing frameworks like Next.js, NestJS, or others.
+- **Flexible Deployment**: A decoupled `AgentServer` allows you to run the agent as a standalone server or integrate its logic into existing frameworks like Next.js, NestJS, or others.
 - **Simplified Capability Management**: An intuitive `capability()` method for registering handlers for your agent's skills.
 - **Protocol Compliance**: Built-in, protocol-compliant message creation, validation, and cryptographic handling (Ed25519).
 - **Configuration-Driven**: Easily configure your agent using a `.hive.yml` file.
@@ -67,7 +67,7 @@ async function main() {
   });
 
   // 3. Create and start the HTTP server
-  const server = agent.createServer();
+  const server = agent.asServer();
   await server.start();
 
   console.log(`Agent is running and ready for tasks.`);

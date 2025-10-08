@@ -8,7 +8,9 @@ export interface IAgentConfig {
   name: string;
   description: string;
   version: string;
-  port: number;
+  endpoint: string;
+  publicKey: string;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   capabilities: IAgentCapability[];
+  env?: string;
 }

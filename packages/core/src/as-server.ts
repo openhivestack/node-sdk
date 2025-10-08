@@ -14,7 +14,7 @@ export class AgentServer {
 
   private setupRoutes() {
     this.app.get('/status', (req: Request, res: Response) => {
-      const identity = this.agent.getIdentity();
+      const identity = this.agent.identity();
       res.status(200).json({
         agentId: identity.id(),
         status: 'ok',
@@ -23,7 +23,7 @@ export class AgentServer {
     });
 
     this.app.get('/capabilities', (req: Request, res: Response) => {
-      const identity = this.agent.getIdentity();
+      const identity = this.agent.identity();
       res.status(200).json({
         agentId: identity.id(),
         capabilities: identity.capabilities(),
@@ -34,20 +34,20 @@ export class AgentServer {
       const message: IHiveMessage = req.body;
 
       try {
-        const senderPublicKey = this.agent.getPeerPublicKey(message.from);
+        const senderPublicKey = await this.agent.publicKey(message.from);
         if (!senderPublicKey) {
           return res.status(401).json({
             error: 'Sender public key not found. Peer not configured.',
           });
         }
 
-        const responseData = await this.agent.handleTaskRequest(
+        const responseData = await this.agent.process(
           message,
           senderPublicKey
         );
 
         let responseMessage: IHiveMessage;
-        const identity = this.agent.getIdentity();
+        const identity = this.agent.identity();
 
         if ('error' in responseData) {
           responseMessage = identity.createTaskError(
@@ -77,12 +77,12 @@ export class AgentServer {
   }
 
   public start(port?: number): Promise<void> {
-    const listenPort = port || this.agent.getPort();
+    const listenPort = port || new URL(this.agent.endpoint()).port;
     return new Promise((resolve) => {
       this.app.listen(listenPort, () => {
         console.log(
           `Agent ${this.agent
-            .getIdentity()
+            .identity()
             .id()} HTTP server listening on port ${listenPort}`
         );
         resolve();

@@ -1,10 +1,10 @@
-import { 
-  HiveErrorType, 
-  IAgentCapability, 
+import {
+  HiveErrorType,
+  IAgentCapability,
   IHiveMessage,
-  HiveMessageType
+  HiveMessageType,
 } from '../types';
-import { Config } from './config';
+import { Config } from './config-manager';
 import { Crypto } from './crypto';
 import { HiveError } from './hive-error';
 import { Message } from './message';
@@ -19,7 +19,7 @@ export class AgentIdentity {
 
   /**
    * Create a new H.I.V.E. agent identity
-   * 
+   *
    * @param config - Agent configuration
    * @param privateKey - Ed25519 private key in PEM format
    * @param publicKey - Ed25519 public key in PEM format
@@ -32,7 +32,7 @@ export class AgentIdentity {
 
   /**
    * Create a new agent identity with a fresh key pair
-   * 
+   *
    * @param config - Agent configuration
    * @returns New AgentIdentity instance
    */
@@ -85,7 +85,7 @@ export class AgentIdentity {
 
   /**
    * Create a task request message
-   * 
+   *
    * @param toAgentId - Recipient agent ID
    * @param capability - Capability ID to request
    * @param params - Parameters for the capability
@@ -113,7 +113,7 @@ export class AgentIdentity {
 
   /**
    * Create a task response message
-   * 
+   *
    * @param toAgentId - Recipient agent ID
    * @param taskId - Task ID
    * @param status - Response status (accepted/rejected)
@@ -141,7 +141,7 @@ export class AgentIdentity {
 
   /**
    * Create a task update message
-   * 
+   *
    * @param toAgentId - Recipient agent ID
    * @param taskId - Task ID
    * @param progress - Optional progress percentage (0-100)
@@ -166,7 +166,7 @@ export class AgentIdentity {
 
   /**
    * Create a task result message
-   * 
+   *
    * @param toAgentId - Recipient agent ID
    * @param taskId - Task ID
    * @param result - Task result data
@@ -188,7 +188,7 @@ export class AgentIdentity {
 
   /**
    * Create a task error message
-   * 
+   *
    * @param toAgentId - Recipient agent ID
    * @param taskId - Task ID
    * @param error - Error code
@@ -219,7 +219,7 @@ export class AgentIdentity {
 
   /**
    * Create a capability query message
-   * 
+   *
    * @param toAgentId - Recipient agent ID
    * @param capabilities - Optional specific capabilities to query
    * @returns Signed capability query message
@@ -238,7 +238,7 @@ export class AgentIdentity {
 
   /**
    * Create a capability response message
-   * 
+   *
    * @param toAgentId - Recipient agent ID
    * @param endpoint - Optional agent endpoint URL
    * @returns Signed capability response message
@@ -258,7 +258,7 @@ export class AgentIdentity {
 
   /**
    * Verify a message signature
-   * 
+   *
    * @param message - Message to verify
    * @param publicKey - Public key to use for verification
    * @returns Boolean indicating if signature is valid
@@ -269,7 +269,7 @@ export class AgentIdentity {
 
   /**
    * Process an incoming message
-   * 
+   *
    * @param message - Incoming message
    * @param publicKey - Sender's public key
    * @throws HiveError if message is invalid
@@ -282,7 +282,9 @@ export class AgentIdentity {
     if (message.to !== this.id()) {
       throw new HiveError(
         HiveErrorType.INVALID_MESSAGE_FORMAT,
-        `Message not addressed to this agent. Expected: ${this.id()}, Got: ${message.to}`
+        `Message not addressed to this agent. Expected: ${this.id()}, Got: ${
+          message.to
+        }`
       );
     }
 
@@ -308,7 +310,7 @@ export class AgentIdentity {
 
   /**
    * Process a task request message
-   * 
+   *
    * @param message - Task request message
    * @throws HiveError if capability not found
    */
@@ -330,7 +332,7 @@ export class AgentIdentity {
 
   /**
    * Process a capability query message
-   * 
+   *
    * @param message - Capability query message
    */
   private processCapabilityQuery(message: IHiveMessage): void {

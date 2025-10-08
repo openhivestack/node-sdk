@@ -1,5 +1,5 @@
 export * from './agent-identity';
-export * from './config';
+export * from './config-manager';
 export * from './crypto';
 export * from './hive-error';
 export * from './message';

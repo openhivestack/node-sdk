@@ -6,10 +6,12 @@ import {
   HiveErrorType,
   HiveMessageType,
   ITaskRequestData,
+  IAgentRegistry,
 } from './types';
 import { AgentIdentity, Crypto } from './utils';
-import { Config } from './utils/config';
-import { AgentServer } from './agent-server.js';
+import { Config } from './utils/config-manager';
+import { AgentServer } from './as-server.js';
+import { InMemoryRegistry } from './in-memory-registry';
 
 type CapabilityHandler = (
   params: Record<string, any>
@@ -19,9 +21,16 @@ export class Agent {
   private config: Config;
   private agentIdentity: AgentIdentity;
   private capabilityHandlers: Map<string, CapabilityHandler> = new Map();
-  private peers: Map<string, string> = new Map(); // agentId -> publicKey
+  private registry: IAgentRegistry;
 
-  constructor(config: IAgentConfig, privateKey?: string, publicKey?: string) {
+  private got: Promise<typeof import('got')>;
+
+  constructor(
+    config: IAgentConfig,
+    privateKey?: string,
+    publicKey?: string,
+    registry: IAgentRegistry = new InMemoryRegistry()
+  ) {
     this.config = new Config(config);
 
     const keys =
@@ -34,9 +43,12 @@ export class Agent {
       keys.privateKey,
       keys.publicKey
     );
+
+    this.got = import('got');
+    this.registry = registry;
   }
 
-  public async handleTaskRequest(
+  public async process(
     message: IHiveMessage,
     senderPublicKey: string
   ): Promise<ITaskResultData | ITaskErrorData> {
@@ -98,24 +110,28 @@ export class Agent {
         `Capability '${id}' is not defined in the agent configuration.`
       );
     }
+    
     this.capabilityHandlers.set(id, handler);
     return this; // For chaining
   }
 
-  public addPeer(agentId: string, publicKey: string) {
-    this.peers.set(agentId, publicKey);
+  public async register() {
+    await this.registry.add({
+      ...this.config.info(),
+      publicKey: this.agentIdentity.getPublicKey(),
+    });
   }
 
-  public getPeerPublicKey(agentId: string): string | undefined {
-    return this.peers.get(agentId);
+  public async publicKey(agentId: string): Promise<string | undefined> {
+    return (await this.registry.get(agentId)).publicKey;
   }
 
-  public getIdentity(): AgentIdentity {
+  public identity(): AgentIdentity {
     return this.agentIdentity;
   }
 
-  public getPort(): number {
-    return this.config.port();
+  public endpoint(): string {
+    return this.config.endpoint();
   }
 
   public createServer(): AgentServer {

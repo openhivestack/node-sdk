@@ -7,7 +7,7 @@ export {
 } from './utils';
 
 export * from './agent';
-export * from './agent-server';
+export * from './as-server';
 
 export type {
   IAgentCapability,
