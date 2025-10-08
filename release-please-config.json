@@ -10,5 +10,6 @@
   "skip-changelog": true,
   "bump-minor-pre-major": true,
   "prerelease": true,
+  "always-update": true,
   "bootstrap-sha": "15151e188a0889988b93a4b0f7719280e81e828a"
 }
