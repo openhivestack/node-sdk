@@ -23,8 +23,6 @@ export class Agent {
   private capabilityHandlers: Map<string, CapabilityHandler> = new Map();
   private registry: IAgentRegistry;
 
-  private got: Promise<typeof import('got')>;
-
   constructor(
     config: IAgentConfig,
     privateKey?: string,
@@ -44,7 +42,6 @@ export class Agent {
       keys.publicKey
     );
 
-    this.got = import('got');
     this.registry = registry;
   }
 
