@@ -67,7 +67,7 @@ async function main() {
   });
 
   // 3. Create and start the HTTP server
-  const server = agent.asServer();
+  const server = agent.createServer();
   await server.start();
 
   console.log(`Agent is running and ready for tasks.`);
@@ -87,7 +87,7 @@ You can now compile and run your `index.ts` file. Your agent will start an HTTP 
 
 ### Integrating with Existing Frameworks
 
-The `Agent` class is decoupled from the HTTP server, allowing you to integrate it into any Node.js framework. Instead of calling `agent.createServer()`, you can use `agent.handleTaskRequest()` inside your own route handlers.
+The `Agent` class is decoupled from the HTTP server, allowing you to integrate its message processing logic into any Node.js framework. Instead of calling `agent.createServer()`, you can use `agent.process()` inside your own route handlers.
 
 **Example with Express:**
 
@@ -105,13 +105,31 @@ app.use(express.json());
 // Integrate into your own /tasks endpoint
 app.post('/tasks', async (req, res) => {
   const message = req.body;
-  // You are responsible for peer public key management
-  const senderPublicKey = getPublicKeyForAgent(message.from);
 
-  const responseData = await agent.handleTaskRequest(message, senderPublicKey);
+  // 1. Look up the sender's public key from the agent's registry
+  const senderPublicKey = await agent.publicKey(message.from);
+  if (!senderPublicKey) {
+    return res.status(401).json({ error: 'Sender public key not found.' });
+  }
 
-  // You are responsible for creating and signing the response message
-  const responseMessage = createAndSignResponseMessage(responseData);
+  // 2. Process the message
+  const responseData = await agent.process(message, senderPublicKey);
+
+  // 3. Create and sign the response message
+  const identity = agent.identity();
+  const responseMessage =
+    'error' in responseData
+      ? identity.createTaskError(
+          message.from,
+          responseData.task_id,
+          responseData.error,
+          responseData.message
+        )
+      : identity.createTaskResult(
+          message.from,
+          responseData.task_id,
+          responseData.result
+        );
 
   const statusCode = 'error' in responseData ? 500 : 200;
   res.status(statusCode).json(responseMessage);
@@ -124,24 +142,41 @@ app.listen(3000, () => {
 
 ### Communicating with Other Agents
 
-You can configure peers to enable agent-to-agent communication.
+Agent-to-agent communication is managed via an `IAgentRegistry`. For local development, you can use the built-in `InMemoryRegistry` to make agents aware of each other.
+
+By sharing the same registry instance, agents can look up each other's public keys to establish secure communication.
 
 ```typescript
-// Add a peer agent's public key
-agent.addPeer(
-  'hive:agentid:some-peer-id',
-  '...peer-public-key-in-pem-format...'
-);
+import { Agent, InMemoryRegistry, IAgentConfig } from '@open-hive/core';
 
-// Get the agent's identity to create messages
-const identity = agent.getIdentity();
+async function setupAgents() {
+  // 1. Create a shared registry
+  const registry = new InMemoryRegistry();
 
-// Create a task request message to send to the peer
-const taskRequest = identity.createTaskRequest(
-  'hive:agentid:some-peer-id',
-  'some-capability',
-  { parameter: 'value' }
-);
+  // 2. Create the first agent
+  const agent1Config = { id: 'hive:agentid:agent-1', ...otherConfig };
+  const agent1 = new Agent(agent1Config, undefined, undefined, registry);
+  await agent1.register(); // Register itself with the shared registry
 
-// Now you can send this `taskRequest` object to the peer's /tasks endpoint.
+  // 3. Create the second agent
+  const agent2Config = { id: 'hive:agentid:agent-2', ...otherConfig };
+  const agent2 = new Agent(agent2Config, undefined, undefined, registry);
+  agent2.capability('some-capability', async (params) => ({ ... }));
+  await agent2.register(); // Register itself with the shared registry
+
+  // 4. Agent 1 can now create a message for Agent 2
+  const identity1 = agent1.identity();
+  const taskRequest = identity1.createTaskRequest(
+    'hive:agentid:agent-2',
+    'some-capability',
+    { parameter: 'value' }
+  );
+
+  // You would then send this `taskRequest` to Agent 2's /tasks endpoint.
+  // The running Agent 2 server would use the same shared registry
+  // to look up Agent 1's public key and verify the message.
+  console.log(taskRequest);
+}
+
+setupAgents();
 ```
