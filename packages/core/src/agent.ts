@@ -12,6 +12,7 @@ import { AgentIdentity, Crypto } from './utils';
 import { Config } from './utils/config-manager';
 import { AgentServer } from './as-server.js';
 import { InMemoryRegistry } from './in-memory-registry';
+import got from 'got';
 
 type CapabilityHandler = (
   params: Record<string, any>
@@ -107,7 +108,7 @@ export class Agent {
         `Capability '${id}' is not defined in the agent configuration.`
       );
     }
-    
+
     this.capabilityHandlers.set(id, handler);
     return this; // For chaining
   }
@@ -133,5 +134,44 @@ export class Agent {
 
   public createServer(): AgentServer {
     return new AgentServer(this);
+  }
+
+  public async sendTask(
+    toAgentId: string,
+    capability: string,
+    params: Record<string, any>,
+    taskId?: string
+  ): Promise<ITaskResultData | ITaskErrorData> {
+    const targetAgent = await this.registry.get(toAgentId);
+    if (!targetAgent) {
+      throw new Error(`Agent ${toAgentId} not found in registry.`);
+    }
+
+    if (!targetAgent.endpoint) {
+      throw new Error(`Endpoint for agent ${toAgentId} not configured.`);
+    }
+
+    const taskRequest = this.agentIdentity.createTaskRequest(
+      toAgentId,
+      capability,
+      params,
+      taskId
+    );
+
+    try {
+      const response: IHiveMessage = await got
+        .post(`${targetAgent.endpoint}/tasks`, {
+          json: taskRequest,
+        })
+        .json();
+
+      if (!this.agentIdentity.verifyMessage(response, targetAgent.publicKey)) {
+        throw new Error('Response signature verification failed.');
+      }
+
+      return response.data as ITaskResultData | ITaskErrorData;
+    } catch (error) {
+      throw new Error(`Failed to send task to agent ${toAgentId}: ${error}`);
+    }
   }
 }

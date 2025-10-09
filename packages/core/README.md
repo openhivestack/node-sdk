@@ -140,45 +140,91 @@ app.listen(3000, () => {
 });
 ```
 
-### Communicating with Other Agents
+### Communicating with Other H.I.V.E Agents
 
-Agent-to-agent communication is managed via an `IAgentRegistry`. For local development, you can use the built-in `InMemoryRegistry` to make agents aware of each other.
+The `Agent` class provides a `sendTask` method that handles the entire process of sending a task to another agent and receiving a response. This includes creating and signing the request message, sending it to the target agent's endpoint, and verifying the signature of the response.
 
-By sharing the same registry instance, agents can look up each other's public keys to establish secure communication.
+For agents to communicate, they must be aware of each other. This is managed via an `IAgentRegistry`. For local development, you can use the built-in `InMemoryRegistry`. By registering agents with a shared registry, they can discover each other's endpoints and public keys.
+
+**Example: Sending a Task**
+
+Here's a complete example of a "requester" agent sending a task to a "responder" agent.
 
 ```typescript
 import { Agent, InMemoryRegistry, IAgentConfig } from '@open-hive/core';
 
-async function setupAgents() {
-  // 1. Create a shared registry
+async function main() {
+  // 1. Create a shared registry for agent discovery
   const registry = new InMemoryRegistry();
 
-  // 2. Create the first agent
-  const agent1Config = { id: 'hive:agentid:agent-1', ...otherConfig };
-  const agent1 = new Agent(agent1Config, undefined, undefined, registry);
-  await agent1.register(); // Register itself with the shared registry
+  // 2. Create the "responder" agent with a 'greet' capability
+  const responderConfig: IAgentConfig = {
+    id: 'hive:agentid:responder',
+    name: 'ResponderAgent',
+    description: 'An agent that responds to greetings.',
+    version: '1.0.0',
+    endpoint: 'http://localhost:11101',
+    capabilities: [
+      {
+        id: 'greet',
+        description: 'Returns a greeting.',
+        input: { name: 'string' },
+        output: { message: 'string' },
+      },
+    ],
+  };
+  const responderAgent = new Agent(
+    responderConfig,
+    undefined,
+    undefined,
+    registry
+  );
+  responderAgent.capability('greet', async (params) => {
+    console.log(`Responder received greet task with params:`, params);
+    return { message: `Hello, ${params.name}!` };
+  });
+  await responderAgent.register();
 
-  // 3. Create the second agent
-  const agent2Config = { id: 'hive:agentid:agent-2', ...otherConfig };
-  const agent2 = new Agent(agent2Config, undefined, undefined, registry);
-  agent2.capability('some-capability', async (params) => ({ ... }));
-  await agent2.register(); // Register itself with the shared registry
+  // 3. Create the "requester" agent
+  const requesterConfig: IAgentConfig = {
+    id: 'hive:agentid:requester',
+    name: 'RequesterAgent',
+    description: 'An agent that sends requests.',
+    version: '1.0.0',
+    endpoint: 'http://localhost:11102',
+    capabilities: [],
+  };
+  const requesterAgent = new Agent(
+    requesterConfig,
+    undefined,
+    undefined,
+    registry
+  );
+  await requesterAgent.register();
 
-  // 4. Agent 1 can now create a message for Agent 2
-  const identity1 = agent1.identity();
-  const taskRequest = identity1.createTaskRequest(
-    'hive:agentid:agent-2',
-    'some-capability',
-    { parameter: 'value' }
+  // 4. Start the responder's server so it can listen for tasks
+  const responderServer = responderAgent.createServer();
+  await responderServer.start();
+
+  // 5. Use sendTask() to send the task from the requester to the responder
+  console.log("Requester sending 'greet' task to responder...");
+  const result = await requesterAgent.sendTask(
+    'hive:agentid:responder',
+    'greet',
+    { name: 'World' }
   );
 
-  // You would then send this `taskRequest` to Agent 2's /tasks endpoint.
-  // The running Agent 2 server would use the same shared registry
-  // to look up Agent 1's public key and verify the message.
-  console.log(taskRequest);
+  console.log('Requester received response:', result);
+
+  // In a real application, you would manage server lifecycles properly.
+  // For this example, we'll exit after the task is done.
+  process.exit(0);
 }
 
-setupAgents();
+main().catch((error) => {
+  console.error('An error occurred:', error.message);
+  process.exit(1);
+});
 ```
 
 ### Advanced Agent Search
