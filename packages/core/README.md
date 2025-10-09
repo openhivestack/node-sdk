@@ -180,3 +180,43 @@ async function setupAgents() {
 
 setupAgents();
 ```
+
+### Advanced Agent Search
+
+The `InMemoryRegistry` now includes a powerful search feature that allows you to find agents using a query syntax inspired by Stripe. You can filter agents by their `name`, `id`, `description`, and `capabilities`.
+
+#### Search by General Term
+
+Provide a single term to search across an agent's `name`, `id`, and `description`.
+
+```typescript
+// Finds agents where 'My Agent' is in the name, id, or description
+const results = await registry.search('My Agent');
+```
+
+#### Search by Specific Fields
+
+Target specific fields using `field:value` syntax.
+
+```typescript
+// Finds agents with the name "HelloWorldAgent"
+const results = await registry.search('name:HelloWorldAgent');
+```
+
+#### Search by Capability
+
+You can find agents that possess a specific capability.
+
+```typescript
+// Finds agents with the 'hello-world' capability
+const results = await registry.search('capability:hello-world');
+```
+
+#### Combining Filters
+
+Combine multiple filters to create more specific queries.
+
+```typescript
+// Finds agents named "My Agent" that also have the 'file-reader' capability
+const results = await registry.search('name:"My Agent" capability:file-reader');
+```
