@@ -3,13 +3,13 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import Handlebars from 'handlebars';
 import dotenv from 'dotenv';
-import { IAgentConfig, IAgentCapability, HiveErrorType } from '../types';
-import { HiveError } from '.';
+import { IAgentConfig, IAgentCapability, AgentErrorTypes } from '../types';
+import { AgentError } from './agent-error';
 
 /**
- * Config class for loading and validating H.I.V.E. agent configuration
+ * AgentConfig class for loading and validating H.I.V.E. agent configuration
  */
-export class Config {
+export class AgentConfig {
   private static DEFAULT_CONFIG: IAgentConfig = {
     endpoint: 'http://localhost:11100',
     logLevel: 'info',
@@ -25,7 +25,7 @@ export class Config {
   private config: IAgentConfig;
 
   /**
-   * Create a new Config instance
+   * Create a new AgentConfig instance
    *
    * @param config - Either a path to a .hive.yml file or an IAgentConfig object
    */
@@ -48,8 +48,8 @@ export class Config {
       
       // Check if file exists
       if (!fs.existsSync(filePath)) {
-        throw new HiveError(
-          HiveErrorType.CONFIG_ERROR,
+        throw new AgentError(
+          AgentErrorTypes.CONFIG_ERROR,
           `Configuration file not found: ${filePath}`
         );
       }
@@ -65,12 +65,12 @@ export class Config {
       // Apply defaults and validate
       return this.validateConfig(parsedConfig);
     } catch (error) {
-      if (error instanceof HiveError) {
+      if (error instanceof AgentError) {
         throw error;
       }
 
-      throw new HiveError(
-        HiveErrorType.CONFIG_ERROR,
+      throw new AgentError(
+        AgentErrorTypes.CONFIG_ERROR,
         `Failed to load configuration: ${
           error instanceof Error ? error.message : String(error)
         }`
@@ -84,43 +84,43 @@ export class Config {
   private validateConfig(config: Partial<IAgentConfig>): IAgentConfig {
     // Apply defaults
     const mergedConfig = {
-      ...Config.DEFAULT_CONFIG,
+      ...AgentConfig.DEFAULT_CONFIG,
       ...config,
     } as IAgentConfig;
 
     // Validate required fields
     if (mergedConfig.id?.length === 0) {
-      throw new HiveError(
-        HiveErrorType.CONFIG_ERROR,
+      throw new AgentError(
+        AgentErrorTypes.CONFIG_ERROR,
         'Missing required field: id'
       );
     }
 
     // Validate agent ID format (hive:agentid:*)
     if (!mergedConfig.id?.startsWith('hive:agentid:')) {
-      throw new HiveError(
-        HiveErrorType.CONFIG_ERROR,
+      throw new AgentError(
+        AgentErrorTypes.CONFIG_ERROR,
         `Invalid agent ID format: ${mergedConfig.id}. Must start with 'hive:agentid:'`
       );
     }
 
     if (mergedConfig.name?.length === 0) {
-      throw new HiveError(
-        HiveErrorType.CONFIG_ERROR,
+      throw new AgentError(
+        AgentErrorTypes.CONFIG_ERROR,
         'Missing required field: name'
       );
     }
 
     if (mergedConfig.description?.length === 0) {
-      throw new HiveError(
-        HiveErrorType.CONFIG_ERROR,
+      throw new AgentError(
+        AgentErrorTypes.CONFIG_ERROR,
         'Missing required field: description'
       );
     }
 
     if (mergedConfig.version?.length === 0) {
-      throw new HiveError(
-        HiveErrorType.CONFIG_ERROR,
+      throw new AgentError(
+        AgentErrorTypes.CONFIG_ERROR,
         'Missing required field: version'
       );
     }
@@ -130,8 +130,8 @@ export class Config {
       !Array.isArray(mergedConfig.capabilities) ||
       mergedConfig.capabilities.length === 0
     ) {
-      throw new HiveError(
-        HiveErrorType.CONFIG_ERROR,
+      throw new AgentError(
+        AgentErrorTypes.CONFIG_ERROR,
         'Agent must define at least one capability'
       );
     }
@@ -139,22 +139,22 @@ export class Config {
     // Validate each capability
     mergedConfig.capabilities.forEach((capability) => {
       if (capability.id?.length === 0) {
-        throw new HiveError(
-          HiveErrorType.CONFIG_ERROR,
+        throw new AgentError(
+          AgentErrorTypes.CONFIG_ERROR,
           'Capability missing required field: id'
         );
       }
 
       if (capability.input?.length === 0 || typeof capability.input !== 'object') {
-        throw new HiveError(
-          HiveErrorType.CONFIG_ERROR,
+        throw new AgentError(
+          AgentErrorTypes.CONFIG_ERROR,
           `Capability "${capability.id}" missing required field: input`
         );
       }
 
       if (capability.output?.length === 0 || typeof capability.output !== 'object') {
-        throw new HiveError(
-          HiveErrorType.CONFIG_ERROR,
+        throw new AgentError(
+          AgentErrorTypes.CONFIG_ERROR,
           `Capability "${capability.id}" missing required field: output`
         );
       }

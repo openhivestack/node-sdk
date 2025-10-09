@@ -1,17 +1,17 @@
 import {
   IAgentConfig,
-  IHiveMessage,
+  IAgentMessage,
   ITaskErrorData,
   ITaskResultData,
-  HiveErrorType,
-  HiveMessageType,
   ITaskRequestData,
   IAgentRegistry,
+  AgentErrorTypes,
+  AgentMessageTypes,
 } from './types';
-import { AgentIdentity, Crypto } from './utils';
-import { Config } from './utils/config-manager';
-import { AgentServer } from './as-server.js';
-import { InMemoryRegistry } from './in-memory-registry';
+import { AgentError, AgentIdentity, AgentSignature } from './utils';
+import { AgentConfig } from './utils/agent-config';
+import { AgentServer } from './utils/agent-server';
+import { InMemoryRegistry } from './utils/in-memory-registry';
 import got from 'got';
 
 type CapabilityHandler = (
@@ -19,7 +19,7 @@ type CapabilityHandler = (
 ) => Promise<Record<string, any>>;
 
 export class Agent {
-  private config: Config;
+  private config: AgentConfig;
   private agentIdentity: AgentIdentity;
   private capabilityHandlers: Map<string, CapabilityHandler> = new Map();
   private registry: IAgentRegistry;
@@ -30,12 +30,12 @@ export class Agent {
     publicKey?: string,
     registry: IAgentRegistry = new InMemoryRegistry()
   ) {
-    this.config = new Config(config);
+    this.config = new AgentConfig(config);
 
     const keys =
       privateKey && publicKey
         ? { privateKey, publicKey }
-        : Crypto.generateKeyPair();
+        : AgentSignature.generateKeyPair();
 
     this.agentIdentity = new AgentIdentity(
       this.config,
@@ -47,7 +47,7 @@ export class Agent {
   }
 
   public async process(
-    message: IHiveMessage,
+    message: IAgentMessage,
     senderPublicKey: string
   ): Promise<ITaskResultData | ITaskErrorData> {
     const task_id = message.data.task_id || 'unknown';
@@ -55,16 +55,16 @@ export class Agent {
     if (!this.agentIdentity.verifyMessage(message, senderPublicKey)) {
       return {
         task_id,
-        error: HiveErrorType.INVALID_SIGNATURE,
+        error: AgentErrorTypes.INVALID_SIGNATURE,
         message: 'Message signature verification failed',
         retry: false,
       };
     }
 
-    if (message.type !== HiveMessageType.TASK_REQUEST) {
+    if (message.type !== AgentMessageTypes.TASK_REQUEST) {
       return {
         task_id,
-        error: HiveErrorType.INVALID_MESSAGE_FORMAT,
+        error: AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         message: `Invalid message type: ${message.type}. Expected 'task_request'.`,
         retry: false,
       };
@@ -76,7 +76,7 @@ export class Agent {
     if (!handler) {
       return {
         task_id,
-        error: HiveErrorType.CAPABILITY_NOT_FOUND,
+        error: AgentErrorTypes.CAPABILITY_NOT_FOUND,
         message: `Capability '${capability}' not found or no handler registered.`,
         retry: false,
       };
@@ -92,7 +92,7 @@ export class Agent {
     } catch (error) {
       return {
         task_id,
-        error: HiveErrorType.PROCESSING_FAILED,
+        error: AgentErrorTypes.PROCESSING_FAILED,
         message:
           error instanceof Error
             ? error.message
@@ -104,7 +104,8 @@ export class Agent {
 
   public capability(id: string, handler: CapabilityHandler) {
     if (!this.config.hasCapability(id)) {
-      throw new Error(
+      throw new AgentError(
+        AgentErrorTypes.CONFIG_ERROR,
         `Capability '${id}' is not defined in the agent configuration.`
       );
     }
@@ -144,11 +145,17 @@ export class Agent {
   ): Promise<ITaskResultData | ITaskErrorData> {
     const targetAgent = await this.registry.get(toAgentId);
     if (!targetAgent) {
-      throw new Error(`Agent ${toAgentId} not found in registry.`);
+      throw new AgentError(
+        AgentErrorTypes.AGENT_NOT_FOUND,
+        `Agent ${toAgentId} not found in registry.`
+      );
     }
 
     if (!targetAgent.endpoint) {
-      throw new Error(`Endpoint for agent ${toAgentId} not configured.`);
+      throw new AgentError(
+        AgentErrorTypes.CONFIG_ERROR,
+        `Endpoint for agent ${toAgentId} not configured.`
+      );
     }
 
     const taskRequest = this.agentIdentity.createTaskRequest(
@@ -159,19 +166,25 @@ export class Agent {
     );
 
     try {
-      const response: IHiveMessage = await got
+      const response: IAgentMessage = await got
         .post(`${targetAgent.endpoint}/tasks`, {
           json: taskRequest,
         })
         .json();
 
       if (!this.agentIdentity.verifyMessage(response, targetAgent.publicKey)) {
-        throw new Error('Response signature verification failed.');
+        throw new AgentError(
+          AgentErrorTypes.INVALID_SIGNATURE,
+          'Response signature verification failed.'
+        );
       }
 
       return response.data as ITaskResultData | ITaskErrorData;
     } catch (error) {
-      throw new Error(`Failed to send task to agent ${toAgentId}: ${error}`);
+      throw new AgentError(
+        AgentErrorTypes.PROCESSING_FAILED,
+        `Failed to send task to agent ${toAgentId}: ${error}`
+      );
     }
   }
 }

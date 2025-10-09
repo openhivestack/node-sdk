@@ -1,15 +1,15 @@
 import * as crypto from 'crypto';
-import { HiveError } from './hive-error';
-import { HiveErrorType } from '../types';
+import { AgentError } from './agent-error';
+import { AgentErrorTypes } from '../types';
 
 /**
  * Crypto utility for H.I.V.E. Protocol
  * Provides methods for Ed25519 key generation, signing, and verification
  */
-export class Crypto {
+export class AgentSignature {
   /**
    * Generate a new Ed25519 key pair
-   * 
+   *
    * @returns Object containing public and private keys in PEM format
    */
   static generateKeyPair(): { publicKey: string; privateKey: string } {
@@ -21,8 +21,8 @@ export class Crypto {
 
       return { publicKey, privateKey };
     } catch (error) {
-      throw new HiveError(
-        HiveErrorType.PROCESSING_FAILED,
+      throw new AgentError(
+        AgentErrorTypes.PROCESSING_FAILED,
         `Failed to generate key pair: ${
           error instanceof Error ? error.message : String(error)
         }`
@@ -32,7 +32,7 @@ export class Crypto {
 
   /**
    * Sign a message using Ed25519 private key
-   * 
+   *
    * @param message - Object to sign
    * @param privateKey - Ed25519 private key in PEM format
    * @returns Base64 encoded signature
@@ -40,11 +40,15 @@ export class Crypto {
   static sign(message: any, privateKey: string): string {
     try {
       const messageString = JSON.stringify(message);
-      const signature = crypto.sign(null, Buffer.from(messageString), privateKey);
+      const signature = crypto.sign(
+        null,
+        Buffer.from(messageString),
+        privateKey
+      );
       return signature.toString('base64');
     } catch (error) {
-      throw new HiveError(
-        HiveErrorType.PROCESSING_FAILED,
+      throw new AgentError(
+        AgentErrorTypes.PROCESSING_FAILED,
         `Failed to sign message: ${
           error instanceof Error ? error.message : String(error)
         }`
@@ -54,7 +58,7 @@ export class Crypto {
 
   /**
    * Verify a message signature using Ed25519 public key
-   * 
+   *
    * @param message - Original message object without signature
    * @param signature - Base64 encoded signature
    * @param publicKey - Ed25519 public key in PEM format
@@ -70,8 +74,8 @@ export class Crypto {
         Buffer.from(signature, 'base64')
       );
     } catch (error) {
-      throw new HiveError(
-        HiveErrorType.PROCESSING_FAILED,
+      throw new AgentError(
+        AgentErrorTypes.PROCESSING_FAILED,
         `Failed to verify signature: ${
           error instanceof Error ? error.message : String(error)
         }`
@@ -81,7 +85,7 @@ export class Crypto {
 
   /**
    * Generate a random identifier for agent IDs
-   * 
+   *
    * @returns Random hex string
    */
   static generateUniqueId(): string {
@@ -90,7 +94,7 @@ export class Crypto {
 
   /**
    * Generate a UUID v4 for task IDs
-   * 
+   *
    * @returns UUID v4 string
    */
   static generateTaskId(): string {

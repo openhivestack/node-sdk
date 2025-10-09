@@ -1,20 +1,14 @@
-export {
-  Config as HiveConfig,
-  HiveError,
-  Crypto as HiveCrypto,
-  Message as HiveMessage,
-  AgentIdentity as HiveAgentIdentity,
-} from './utils';
+export { AgentConfig, AgentError, AgentIdentity, AgentSignature } from './utils';
 
 export * from './agent';
-export * from './as-server';
+export * from './utils/agent-server';
 
 export type {
   IAgentCapability,
   IAgentConfig,
-  HiveErrorType,
-  IHiveMessage,
-  HiveMessageType,
+  AgentErrorTypes,
+  IAgentMessage,
+  AgentMessageTypes,
   ITaskRequestData,
   ITaskResponseData,
   ITaskUpdateData,
@@ -23,4 +17,5 @@ export type {
   ICapabilityQueryData,
   ICapabilityResponseData,
   IAgentIdentityData,
+  IAgentRegistry,
 } from './types';

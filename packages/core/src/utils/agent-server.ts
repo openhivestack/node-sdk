@@ -1,7 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import bodyParser from 'body-parser';
-import { Agent } from './agent.js';
-import { IHiveMessage } from './types/index.js';
+import { Agent } from '../agent.js';
+import { IAgentMessage } from '../types';
 
 export class AgentServer {
   private app: Express;
@@ -31,7 +31,7 @@ export class AgentServer {
     });
 
     this.app.post('/tasks', async (req: Request, res: Response) => {
-      const message: IHiveMessage = req.body;
+      const message: IAgentMessage = req.body;
 
       try {
         const senderPublicKey = await this.agent.publicKey(message.from);
@@ -41,12 +41,9 @@ export class AgentServer {
           });
         }
 
-        const responseData = await this.agent.process(
-          message,
-          senderPublicKey
-        );
+        const responseData = await this.agent.process(message, senderPublicKey);
 
-        let responseMessage: IHiveMessage;
+        let responseMessage: IAgentMessage;
         const identity = this.agent.identity();
 
         if ('error' in responseData) {

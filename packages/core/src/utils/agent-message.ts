@@ -1,110 +1,110 @@
-import { 
-  HiveErrorType,
-  IHiveMessage, 
-  HiveMessageType,
+import {
+  AgentErrorTypes,
+  IAgentMessage,
+  AgentMessageTypes,
   ITaskRequestData,
   ITaskResponseData,
   ITaskUpdateData,
   ITaskResultData,
   ITaskErrorData,
   ICapabilityQueryData,
-  ICapabilityResponseData
+  ICapabilityResponseData,
 } from '../types';
-import { Crypto } from './crypto';
-import { HiveError } from './hive-error';
+import { AgentSignature } from './agent-signature';
+import { AgentError } from './agent-error';
 
 /**
  * Message class for H.I.V.E. Protocol message handling
  */
-export class Message {
+export class AgentMessage {
   /**
    * Validate a message structure
-   * 
+   *
    * @param message - Message to validate
-   * @throws HiveError if message is invalid
+   * @throws AgentError if message is invalid
    */
   static validate(message: any): void {
     // Check required fields
     if (!message) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Message is empty or undefined'
       );
     }
 
     if (!message.from) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Missing required field: from'
       );
     }
 
     if (!message.to) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Missing required field: to'
       );
     }
 
     if (!message.type) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Missing required field: type'
       );
     }
 
     if (!message.data) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Missing required field: data'
       );
     }
 
     // Validate agent ID format
     if (!message.from.startsWith('hive:agentid:')) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         `Invalid 'from' agent ID format: ${message.from}. Must start with 'hive:agentid:'`
       );
     }
 
     if (!message.to.startsWith('hive:agentid:')) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         `Invalid 'to' agent ID format: ${message.to}. Must start with 'hive:agentid:'`
       );
     }
 
     // Validate message type
-    const validTypes = Object.values(HiveMessageType);
+    const validTypes = Object.values(AgentMessageTypes);
     if (!validTypes.includes(message.type)) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         `Invalid message type: ${message.type}`
       );
     }
 
     // Validate data based on message type
     switch (message.type) {
-      case HiveMessageType.TASK_REQUEST:
+      case AgentMessageTypes.TASK_REQUEST:
         this.validateTaskRequest(message.data);
         break;
-      case HiveMessageType.TASK_RESPONSE:
+      case AgentMessageTypes.TASK_RESPONSE:
         this.validateTaskResponse(message.data);
         break;
-      case HiveMessageType.TASK_UPDATE:
+      case AgentMessageTypes.TASK_UPDATE:
         this.validateTaskUpdate(message.data);
         break;
-      case HiveMessageType.TASK_RESULT:
+      case AgentMessageTypes.TASK_RESULT:
         this.validateTaskResult(message.data);
         break;
-      case HiveMessageType.TASK_ERROR:
+      case AgentMessageTypes.TASK_ERROR:
         this.validateTaskError(message.data);
         break;
-      case HiveMessageType.CAPABILITY_QUERY:
+      case AgentMessageTypes.CAPABILITY_QUERY:
         this.validateCapabilityQuery(message.data);
         break;
-      case HiveMessageType.CAPABILITY_RESPONSE:
+      case AgentMessageTypes.CAPABILITY_RESPONSE:
         this.validateCapabilityResponse(message.data);
         break;
       default:
@@ -118,22 +118,22 @@ export class Message {
    */
   private static validateTaskRequest(data: any): void {
     if (!data.task_id) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task request missing required field: task_id'
       );
     }
 
     if (!data.capability) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task request missing required field: capability'
       );
     }
 
     if (!data.params || typeof data.params !== 'object') {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task request missing required field: params'
       );
     }
@@ -144,15 +144,15 @@ export class Message {
    */
   private static validateTaskResponse(data: any): void {
     if (!data.task_id) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task response missing required field: task_id'
       );
     }
 
     if (!data.status || !['accepted', 'rejected'].includes(data.status)) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task response missing or invalid field: status (must be "accepted" or "rejected")'
       );
     }
@@ -163,22 +163,27 @@ export class Message {
    */
   private static validateTaskUpdate(data: any): void {
     if (!data.task_id) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task update missing required field: task_id'
       );
     }
 
     if (!data.status || data.status !== 'in_progress') {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task update missing or invalid field: status (must be "in_progress")'
       );
     }
 
-    if (data.progress !== undefined && (typeof data.progress !== 'number' || data.progress < 0 || data.progress > 100)) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+    if (
+      data.progress !== undefined &&
+      (typeof data.progress !== 'number' ||
+        data.progress < 0 ||
+        data.progress > 100)
+    ) {
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task update invalid field: progress (must be a number between 0-100)'
       );
     }
@@ -189,22 +194,22 @@ export class Message {
    */
   private static validateTaskResult(data: any): void {
     if (!data.task_id) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task result missing required field: task_id'
       );
     }
 
     if (!data.status || data.status !== 'completed') {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task result missing or invalid field: status (must be "completed")'
       );
     }
 
     if (!data.result || typeof data.result !== 'object') {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task result missing required field: result'
       );
     }
@@ -215,29 +220,29 @@ export class Message {
    */
   private static validateTaskError(data: any): void {
     if (!data.task_id) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task error missing required field: task_id'
       );
     }
 
     if (!data.error) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task error missing required field: error'
       );
     }
 
     if (!data.message) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task error missing required field: message'
       );
     }
 
     if (data.retry === undefined) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Task error missing required field: retry'
       );
     }
@@ -249,8 +254,8 @@ export class Message {
   private static validateCapabilityQuery(data: any): void {
     // Capability query can be empty or contain a capabilities array
     if (data.capabilities !== undefined && !Array.isArray(data.capabilities)) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Capability query invalid field: capabilities (must be an array)'
       );
     }
@@ -260,9 +265,13 @@ export class Message {
    * Validate capability response data
    */
   private static validateCapabilityResponse(data: any): void {
-    if (!data.capabilities || !Array.isArray(data.capabilities) || data.capabilities.length === 0) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+    if (
+      !data.capabilities ||
+      !Array.isArray(data.capabilities) ||
+      data.capabilities.length === 0
+    ) {
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         'Capability response missing required field: capabilities (must be a non-empty array)'
       );
     }
@@ -270,22 +279,22 @@ export class Message {
     // Validate each capability
     data.capabilities.forEach((capability: any, index: number) => {
       if (!capability.id) {
-        throw new HiveError(
-          HiveErrorType.INVALID_MESSAGE_FORMAT,
+        throw new AgentError(
+          AgentErrorTypes.INVALID_MESSAGE_FORMAT,
           `Capability at index ${index} missing required field: id`
         );
       }
 
       if (!capability.input || typeof capability.input !== 'object') {
-        throw new HiveError(
-          HiveErrorType.INVALID_MESSAGE_FORMAT,
+        throw new AgentError(
+          AgentErrorTypes.INVALID_MESSAGE_FORMAT,
           `Capability "${capability.id}" missing required field: input`
         );
       }
 
       if (!capability.output || typeof capability.output !== 'object') {
-        throw new HiveError(
-          HiveErrorType.INVALID_MESSAGE_FORMAT,
+        throw new AgentError(
+          AgentErrorTypes.INVALID_MESSAGE_FORMAT,
           `Capability "${capability.id}" missing required field: output`
         );
       }
@@ -303,9 +312,9 @@ export class Message {
     privateKey: string,
     taskId?: string,
     deadline?: string
-  ): IHiveMessage {
+  ): IAgentMessage {
     const data: ITaskRequestData = {
-      task_id: taskId || Crypto.generateTaskId(),
+      task_id: taskId || AgentSignature.generateTaskId(),
       capability,
       params,
     };
@@ -317,7 +326,7 @@ export class Message {
     return this.createMessage(
       fromAgentId,
       toAgentId,
-      HiveMessageType.TASK_REQUEST,
+      AgentMessageTypes.TASK_REQUEST,
       data,
       privateKey
     );
@@ -334,7 +343,7 @@ export class Message {
     privateKey: string,
     estimatedCompletion?: string,
     reason?: string
-  ): IHiveMessage {
+  ): IAgentMessage {
     const data: ITaskResponseData = {
       task_id: taskId,
       status,
@@ -351,7 +360,7 @@ export class Message {
     return this.createMessage(
       fromAgentId,
       toAgentId,
-      HiveMessageType.TASK_RESPONSE,
+      AgentMessageTypes.TASK_RESPONSE,
       data,
       privateKey
     );
@@ -367,7 +376,7 @@ export class Message {
     privateKey: string,
     progress?: number,
     message?: string
-  ): IHiveMessage {
+  ): IAgentMessage {
     const data: ITaskUpdateData = {
       task_id: taskId,
       status: 'in_progress',
@@ -384,7 +393,7 @@ export class Message {
     return this.createMessage(
       fromAgentId,
       toAgentId,
-      HiveMessageType.TASK_UPDATE,
+      AgentMessageTypes.TASK_UPDATE,
       data,
       privateKey
     );
@@ -399,7 +408,7 @@ export class Message {
     taskId: string,
     result: Record<string, any>,
     privateKey: string
-  ): IHiveMessage {
+  ): IAgentMessage {
     const data: ITaskResultData = {
       task_id: taskId,
       status: 'completed',
@@ -409,7 +418,7 @@ export class Message {
     return this.createMessage(
       fromAgentId,
       toAgentId,
-      HiveMessageType.TASK_RESULT,
+      AgentMessageTypes.TASK_RESULT,
       data,
       privateKey
     );
@@ -427,7 +436,7 @@ export class Message {
     retry: boolean,
     privateKey: string,
     code?: number
-  ): IHiveMessage {
+  ): IAgentMessage {
     const data: ITaskErrorData = {
       task_id: taskId,
       error,
@@ -442,7 +451,7 @@ export class Message {
     return this.createMessage(
       fromAgentId,
       toAgentId,
-      HiveMessageType.TASK_ERROR,
+      AgentMessageTypes.TASK_ERROR,
       data,
       privateKey
     );
@@ -456,7 +465,7 @@ export class Message {
     toAgentId: string,
     privateKey: string,
     capabilities?: string[]
-  ): IHiveMessage {
+  ): IAgentMessage {
     const data: ICapabilityQueryData = {};
 
     if (capabilities) {
@@ -466,7 +475,7 @@ export class Message {
     return this.createMessage(
       fromAgentId,
       toAgentId,
-      HiveMessageType.CAPABILITY_QUERY,
+      AgentMessageTypes.CAPABILITY_QUERY,
       data,
       privateKey
     );
@@ -486,7 +495,7 @@ export class Message {
     }>,
     privateKey: string,
     endpoint?: string
-  ): IHiveMessage {
+  ): IAgentMessage {
     const data: ICapabilityResponseData = {
       capabilities,
     };
@@ -498,7 +507,7 @@ export class Message {
     return this.createMessage(
       fromAgentId,
       toAgentId,
-      HiveMessageType.CAPABILITY_RESPONSE,
+      AgentMessageTypes.CAPABILITY_RESPONSE,
       data,
       privateKey
     );
@@ -510,10 +519,10 @@ export class Message {
   private static createMessage(
     fromAgentId: string,
     toAgentId: string,
-    type: HiveMessageType,
+    type: AgentMessageTypes,
     data: any,
     privateKey: string
-  ): IHiveMessage {
+  ): IAgentMessage {
     // Create message without signature
     const messageWithoutSig = {
       from: fromAgentId,
@@ -523,7 +532,7 @@ export class Message {
     };
 
     // Sign message
-    const sig = Crypto.sign(messageWithoutSig, privateKey);
+    const sig = AgentSignature.sign(messageWithoutSig, privateKey);
 
     // Return complete message
     return {
@@ -535,8 +544,8 @@ export class Message {
   /**
    * Verify a message signature
    */
-  static verifySignature(message: IHiveMessage, publicKey: string): boolean {
+  static verifySignature(message: IAgentMessage, publicKey: string): boolean {
     const { sig, ...messageWithoutSig } = message;
-    return Crypto.verify(messageWithoutSig, sig, publicKey);
+    return AgentSignature.verify(messageWithoutSig, sig, publicKey);
   }
 }

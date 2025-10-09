@@ -1,19 +1,19 @@
 import {
-  HiveErrorType,
+  AgentErrorTypes,
   IAgentCapability,
-  IHiveMessage,
-  HiveMessageType,
+  IAgentMessage,
+  AgentMessageTypes,
 } from '../types';
-import { Config } from './config-manager';
-import { Crypto } from './crypto';
-import { HiveError } from './hive-error';
-import { Message } from './message';
+import { AgentConfig } from './agent-config';
+import { AgentSignature } from './agent-signature';
+import { AgentError } from './agent-error';
+import { AgentMessage } from './agent-message';
 
 /**
  * AgentIdentity class for H.I.V.E. Protocol agent functionality
  */
 export class AgentIdentity {
-  private config: Config;
+  private config: AgentConfig;
   private privateKey: string;
   private publicKey: string;
 
@@ -24,7 +24,7 @@ export class AgentIdentity {
    * @param privateKey - Ed25519 private key in PEM format
    * @param publicKey - Ed25519 public key in PEM format
    */
-  constructor(config: Config, privateKey: string, publicKey: string) {
+  constructor(config: AgentConfig, privateKey: string, publicKey: string) {
     this.config = config;
     this.privateKey = privateKey;
     this.publicKey = publicKey;
@@ -36,8 +36,8 @@ export class AgentIdentity {
    * @param config - Agent configuration
    * @returns New AgentIdentity instance
    */
-  static create(config: Config): AgentIdentity {
-    const { publicKey, privateKey } = Crypto.generateKeyPair();
+  static create(config: AgentConfig): AgentIdentity {
+    const { publicKey, privateKey } = AgentSignature.generateKeyPair();
     return new AgentIdentity(config, privateKey, publicKey);
   }
 
@@ -99,8 +99,8 @@ export class AgentIdentity {
     params: Record<string, any>,
     taskId?: string,
     deadline?: string
-  ): IHiveMessage {
-    return Message.createTaskRequest(
+  ): IAgentMessage {
+    return AgentMessage.createTaskRequest(
       this.id(),
       toAgentId,
       capability,
@@ -127,8 +127,8 @@ export class AgentIdentity {
     status: 'accepted' | 'rejected',
     estimatedCompletion?: string,
     reason?: string
-  ): IHiveMessage {
-    return Message.createTaskResponse(
+  ): IAgentMessage {
+    return AgentMessage.createTaskResponse(
       this.id(),
       toAgentId,
       taskId,
@@ -153,8 +153,8 @@ export class AgentIdentity {
     taskId: string,
     progress?: number,
     message?: string
-  ): IHiveMessage {
-    return Message.createTaskUpdate(
+  ): IAgentMessage {
+    return AgentMessage.createTaskUpdate(
       this.id(),
       toAgentId,
       taskId,
@@ -176,8 +176,8 @@ export class AgentIdentity {
     toAgentId: string,
     taskId: string,
     result: Record<string, any>
-  ): IHiveMessage {
-    return Message.createTaskResult(
+  ): IAgentMessage {
+    return AgentMessage.createTaskResult(
       this.id(),
       toAgentId,
       taskId,
@@ -204,8 +204,8 @@ export class AgentIdentity {
     message: string,
     retry: boolean,
     code?: number
-  ): IHiveMessage {
-    return Message.createTaskError(
+  ): IAgentMessage {
+    return AgentMessage.createTaskError(
       this.id(),
       toAgentId,
       taskId,
@@ -227,8 +227,8 @@ export class AgentIdentity {
   public createCapabilityQuery(
     toAgentId: string,
     capabilities?: string[]
-  ): IHiveMessage {
-    return Message.createCapabilityQuery(
+  ): IAgentMessage {
+    return AgentMessage.createCapabilityQuery(
       this.id(),
       toAgentId,
       this.privateKey,
@@ -246,8 +246,8 @@ export class AgentIdentity {
   public createCapabilityResponse(
     toAgentId: string,
     endpoint?: string
-  ): IHiveMessage {
-    return Message.createCapabilityResponse(
+  ): IAgentMessage {
+    return AgentMessage.createCapabilityResponse(
       this.id(),
       toAgentId,
       this.capabilities(),
@@ -263,8 +263,8 @@ export class AgentIdentity {
    * @param publicKey - Public key to use for verification
    * @returns Boolean indicating if signature is valid
    */
-  public verifyMessage(message: IHiveMessage, publicKey: string): boolean {
-    return Message.verifySignature(message, publicKey);
+  public verifyMessage(message: IAgentMessage, publicKey: string): boolean {
+    return AgentMessage.verifySignature(message, publicKey);
   }
 
   /**
@@ -274,14 +274,14 @@ export class AgentIdentity {
    * @param publicKey - Sender's public key
    * @throws HiveError if message is invalid
    */
-  public processMessage(message: IHiveMessage, publicKey: string): void {
+  public processMessage(message: IAgentMessage, publicKey: string): void {
     // Validate message structure
-    Message.validate(message);
+    AgentMessage.validate(message);
 
     // Verify message is addressed to this agent
     if (message.to !== this.id()) {
-      throw new HiveError(
-        HiveErrorType.INVALID_MESSAGE_FORMAT,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_MESSAGE_FORMAT,
         `Message not addressed to this agent. Expected: ${this.id()}, Got: ${
           message.to
         }`
@@ -290,18 +290,18 @@ export class AgentIdentity {
 
     // Verify signature
     if (!this.verifyMessage(message, publicKey)) {
-      throw new HiveError(
-        HiveErrorType.INVALID_SIGNATURE,
+      throw new AgentError(
+        AgentErrorTypes.INVALID_SIGNATURE,
         'Message signature verification failed'
       );
     }
 
     // Process message based on type
     switch (message.type) {
-      case HiveMessageType.TASK_REQUEST:
+      case AgentMessageTypes.TASK_REQUEST:
         this.processTaskRequest(message);
         break;
-      case HiveMessageType.CAPABILITY_QUERY:
+      case AgentMessageTypes.CAPABILITY_QUERY:
         this.processCapabilityQuery(message);
         break;
       // Add handlers for other message types as needed
@@ -314,13 +314,13 @@ export class AgentIdentity {
    * @param message - Task request message
    * @throws HiveError if capability not found
    */
-  private processTaskRequest(message: IHiveMessage): void {
+  private processTaskRequest(message: IAgentMessage): void {
     const { capability } = message.data;
 
     // Check if agent has the requested capability
     if (!this.config.hasCapability(capability)) {
-      throw new HiveError(
-        HiveErrorType.CAPABILITY_NOT_FOUND,
+      throw new AgentError(
+        AgentErrorTypes.CAPABILITY_NOT_FOUND,
         `Capability not found: ${capability}`
       );
     }
@@ -335,7 +335,7 @@ export class AgentIdentity {
    *
    * @param message - Capability query message
    */
-  private processCapabilityQuery(message: IHiveMessage): void {
+  private processCapabilityQuery(message: IAgentMessage): void {
     // Handle capability query
     // This would typically involve filtering capabilities if specific ones were requested
     // and sending a capability response message

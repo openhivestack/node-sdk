@@ -1,7 +1,7 @@
 /**
  * Error codes aligned with H.I.V.E. Protocol specification
  */
-export enum HiveErrorType {
+export enum AgentErrorTypes {
   INVALID_SIGNATURE = 'invalid_signature',
   CAPABILITY_NOT_FOUND = 'capability_not_found',
   INVALID_PARAMETERS = 'invalid_parameters',

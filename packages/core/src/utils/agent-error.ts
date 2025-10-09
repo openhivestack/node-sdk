@@ -1,40 +1,40 @@
-import { HiveErrorType } from "../types";
+import { AgentErrorTypes } from "../types";
 
 /**
  * Error class that follows H.I.V.E. Protocol error format
  */
-export class HiveError extends Error {
-  code: HiveErrorType;
+export class AgentError extends Error {
+  code: AgentErrorTypes;
   retry: boolean;
   httpStatus: number;
 
-  constructor(code: HiveErrorType, message: string, retry = false) {
+  constructor(code: AgentErrorTypes, message: string, retry = false) {
     super(message);
-    this.name = 'HiveError';
+    this.name = 'AgentError';
     this.code = code;
     this.retry = retry;
 
     // Set HTTP status based on error code
     switch (code) {
-      case HiveErrorType.INVALID_SIGNATURE:
+      case AgentErrorTypes.INVALID_SIGNATURE:
         this.httpStatus = 401;
         break;
-      case HiveErrorType.CAPABILITY_NOT_FOUND:
-      case HiveErrorType.AGENT_NOT_FOUND:
+      case AgentErrorTypes.CAPABILITY_NOT_FOUND:
+      case AgentErrorTypes.AGENT_NOT_FOUND:
         this.httpStatus = 404;
         break;
-      case HiveErrorType.INVALID_PARAMETERS:
-      case HiveErrorType.INVALID_MESSAGE_FORMAT:
-      case HiveErrorType.CONFIG_ERROR:
+      case AgentErrorTypes.INVALID_PARAMETERS:
+      case AgentErrorTypes.INVALID_MESSAGE_FORMAT:
+      case AgentErrorTypes.CONFIG_ERROR:
         this.httpStatus = 400;
         break;
-      case HiveErrorType.RATE_LIMITED:
+      case AgentErrorTypes.RATE_LIMITED:
         this.httpStatus = 429;
         break;
-      case HiveErrorType.RESOURCE_UNAVAILABLE:
+      case AgentErrorTypes.RESOURCE_UNAVAILABLE:
         this.httpStatus = 503;
         break;
-      case HiveErrorType.PROCESSING_FAILED:
+      case AgentErrorTypes.PROCESSING_FAILED:
       default:
         this.httpStatus = 500;
         break;
@@ -48,7 +48,7 @@ export class HiveError extends Error {
     return {
       from: agentId,
       to: targetId,
-      type: HiveErrorType.TASK_ERROR,
+      type: AgentErrorTypes.TASK_ERROR,
       data: {
         task_id: taskId || 'config-error',
         error: this.code,

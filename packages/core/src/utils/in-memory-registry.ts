@@ -1,5 +1,6 @@
-import { IAgentConfig, IAgentRegistry } from './types';
-import { QueryParser } from './utils/query-engine';
+import { IAgentConfig, IAgentRegistry, AgentErrorTypes } from '../types';
+import { QueryParser } from './query-engine';
+import { AgentError } from './agent-error';
 
 export class InMemoryRegistry implements IAgentRegistry {
   private db: Map<string, IAgentConfig>;
@@ -17,7 +18,10 @@ export class InMemoryRegistry implements IAgentRegistry {
     const agent = this.db.get(agentId);
 
     if (!agent) {
-      throw new Error(`Agent with id ${agentId} not found`);
+      throw new AgentError(
+        AgentErrorTypes.AGENT_NOT_FOUND,
+        `Agent with id ${agentId} not found`
+      );
     }
 
     return agent;

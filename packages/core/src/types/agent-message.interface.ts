@@ -1,10 +1,10 @@
 /**
  * Interface for H.I.V.E. Protocol message structure
  */
-export interface IHiveMessage {
+export interface IAgentMessage {
   from: string;
   to: string;
-  type: HiveMessageType;
+  type: AgentMessageTypes;
   data: any;
   sig: string;
 }
@@ -12,7 +12,7 @@ export interface IHiveMessage {
 /**
  * Message types defined by H.I.V.E. Protocol
  */
-export enum HiveMessageType {
+export enum AgentMessageTypes {
   TASK_REQUEST = 'task_request',
   TASK_RESPONSE = 'task_response',
   TASK_UPDATE = 'task_update',
