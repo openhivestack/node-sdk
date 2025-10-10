@@ -18,4 +18,5 @@ export type {
   ICapabilityResponseData,
   IAgentIdentityData,
   IAgentRegistry,
+  IAgentRegistryEntry,
 } from './types';
