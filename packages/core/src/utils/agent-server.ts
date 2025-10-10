@@ -30,6 +30,60 @@ export class AgentServer {
       });
     });
 
+    this.app.post('/registry/add', async (req: Request, res: Response) => {
+      try {
+        const agentInfo = req.body;
+        const result = await this.agent.registry.add(agentInfo);
+        res.status(201).json(result);
+      } catch (error) {
+        res.status(500).json({ error: (error as Error).message });
+      }
+    });
+
+    this.app.get('/registry', async (req: Request, res: Response) => {
+      try {
+        const agents = await this.agent.registry.list();
+        res.status(200).json(agents);
+      } catch (error) {
+        res.status(500).json({ error: (error as Error).message });
+      }
+    });
+
+    this.app.get('/registry/search', async (req: Request, res: Response) => {
+      try {
+        const query = req.query.q as string;
+        const results = await this.agent.registry.search(query);
+        res.status(200).json(results);
+      } catch (error) {
+        res.status(500).json({ error: (error as Error).message });
+      }
+    });
+
+    this.app.get('/registry/:agentId', async (req: Request, res: Response) => {
+      try {
+        const agent = await this.agent.registry.get(req.params.agentId);
+        if (agent) {
+          res.status(200).json(agent);
+        } else {
+          res.status(404).json({ error: 'Agent not found' });
+        }
+      } catch (error) {
+        res.status(500).json({ error: (error as Error).message });
+      }
+    });
+
+    this.app.delete(
+      '/registry/:agentId',
+      async (req: Request, res: Response) => {
+        try {
+          await this.agent.registry.remove(req.params.agentId);
+          res.status(204).send();
+        } catch (error) {
+          res.status(500).json({ error: (error as Error).message });
+        }
+      }
+    );
+
     this.app.post('/tasks', async (req: Request, res: Response) => {
       const message: IAgentMessage = req.body;
 

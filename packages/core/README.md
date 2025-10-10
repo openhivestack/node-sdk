@@ -94,6 +94,17 @@ You can now compile and run your `index.ts` file. Your agent will start an HTTP 
 
 The agent will automatically load its configuration, including its cryptographic keys, from the `.hive.yml` file.
 
+## Agent as a Registry
+
+The `AgentServer` now includes a full set of RESTful endpoints that expose the agent's internal registry, allowing any agent to serve as a discovery hub for a cluster of other agents. This enables agents to dynamically register, deregister, and discover each other over the network.
+
+### Registry API Endpoints
+
+- `POST /registry/add`: Registers an agent. The request body should be an `IAgentRegistryEntry` object.
+- `GET /registry`: Returns a list of all registered agents.
+- `GET /registry/:agentId`: Retrieves the details of a single agent by its ID.
+- `DELETE /registry/:agentId`: Removes an agent from the registry.
+
 ## Advanced Usage
 
 ### Integrating with Existing Frameworks
@@ -154,92 +165,121 @@ app.listen(3000, () => {
 
 ### Communicating with Other H.I.V.E Agents
 
-The `Agent` class provides a `sendTask` method that handles the entire process of sending a task to another agent and receiving a response. This includes creating and signing the request message, sending it to the target agent's endpoint, and verifying the signature of the response.
+The `Agent` class provides a `sendTask` method to securely communicate with other agents. For agents to communicate, they must first discover each other. The following example demonstrates a realistic scenario with three agents forming a cluster: one agent acts as a central registry, while the other two register with it and then communicate.
 
-For agents to communicate, they must be aware of each other. This is managed via an `IAgentRegistry`. For local development, you can use the built-in `InMemoryRegistry`. By registering agents with a shared registry, they can discover each other's endpoints and public keys.
+This example assumes you have three separate terminal sessions and the necessary `.hive.yml` and `.env` files for each agent.
 
-**Example: Sending a Task**
+#### 1. The Registry Agent
 
-Here's a complete example of a "requester" agent sending a task to a "responder" agent. For this example, we'll define their configurations as objects, but in a real application, each agent would have its own `.hive.yml` file.
+This agent's only job is to run and serve as the discovery server for the cluster.
+
+**`registry-agent.ts`**
 
 ```typescript
-import { Agent, InMemoryRegistry, IAgentConfig } from '@open-hive/core';
+import { Agent } from '@open-hive/core';
+
+// Create a .hive.yml for this agent listening on port 11100
+// It needs an ID, keys, etc., but no capabilities are required.
 
 async function main() {
-  // 1. Create a shared registry for agent discovery
-  const registry = new InMemoryRegistry();
+  const registryAgent = new Agent(); // Loads .hive.yml by default
+  const server = registryAgent.createServer();
+  await server.start();
+  console.log(`Registry agent is running at ${registryAgent.endpoint()}`);
+}
 
-  // 2. Create the "responder" agent with a 'greet' capability
-  const responderConfig: IAgentConfig = {
-    id: 'hive:agentid:responder',
-    name: 'ResponderAgent',
-    description: 'An agent that responds to greetings.',
-    version: '1.0.0',
-    endpoint: 'http://localhost:11101',
-    keys: {
-      publicKey: 'responder_public_key',
-      privateKey: 'responder_private_key',
-    },
-    capabilities: [
-      {
-        id: 'greet',
-        description: 'Returns a greeting.',
-        input: { name: 'string' },
-        output: { message: 'string' },
-      },
-    ],
-  };
-  const responderAgent = new Agent(responderConfig, registry);
+main().catch(console.error);
+```
+
+Run this agent in your first terminal: `ts-node registry-agent.ts`
+
+#### 2. The Responder Agent
+
+This agent provides a `greet` capability and registers itself with the Registry Agent upon startup.
+
+**`responder-agent.ts`**
+
+```typescript
+import { Agent } from '@open-hive/core';
+
+// Create a .hive.yml for this agent listening on port 11101
+// with a capability called 'greet'.
+
+const REGISTRY_ENDPOINT = 'http://localhost:11100';
+
+async function main() {
+  const responderAgent = new Agent();
+
   responderAgent.capability('greet', async (params) => {
-    console.log(`Responder received greet task with params:`, params);
     return { message: `Hello, ${params.name}!` };
   });
 
-  // Register the responder to make it discoverable
-  await responderAgent.register();
+  // Register itself with the registry agent
+  await responderAgent.register(REGISTRY_ENDPOINT);
+  console.log('Responder agent registered successfully.');
 
-  // 3. Create the "requester" agent
-  const requesterConfig: IAgentConfig = {
-    id: 'hive:agentid:requester',
-    name: 'RequesterAgent',
-    description: 'An agent that sends requests.',
-    version: '1.0.0',
-    endpoint: 'http://localhost:11102',
-    keys: {
-      publicKey: 'requester_public_key',
-      privateKey: 'requester_private_key',
-    },
-    capabilities: [],
-  };
-  const requesterAgent = new Agent(requesterConfig, registry);
+  const server = responderAgent.createServer();
+  await server.start();
+  console.log(`Responder agent is running at ${responderAgent.endpoint()}`);
+}
 
-  // Register the requester to make it discoverable
-  await requesterAgent.register();
+main().catch(console.error);
+```
 
-  // 4. Start the responder's server so it can listen for tasks
-  const responderServer = responderAgent.createServer();
-  await responderServer.start();
+Run this agent in your second terminal: `ts-node responder-agent.ts`
 
-  // 5. Use sendTask() to send the task from the requester to the responder
-  console.log("Requester sending 'greet' task to responder...");
-  const result = await requesterAgent.sendTask(
-    'hive:agentid:responder',
-    'greet',
-    { name: 'World' }
+#### 3. The Requester Agent
+
+This agent sends a task to the Responder Agent after discovering it via the Registry Agent.
+
+**`requester-agent.ts`**
+
+```typescript
+import { Agent } from '@open-hive/core';
+
+// Create a .hive.yml for this agent listening on port 11102
+
+const REGISTRY_ENDPOINT = 'http://localhost:11100';
+
+async function main() {
+  const requesterAgent = new Agent();
+
+  // Register itself with the registry agent
+  await requesterAgent.register(REGISTRY_ENDPOINT);
+  console.log('Requester agent registered successfully.');
+
+  // 1. Search for agents with the 'greet' capability
+  console.log("Searching for agents with 'greet' capability...");
+  const searchResults = await requesterAgent.search(
+    'capability:greet',
+    REGISTRY_ENDPOINT
   );
 
-  console.log('Requester received response:', result);
+  if (searchResults.length === 0) {
+    console.error('No agents found with the "greet" capability.');
+    process.exit(1);
+  }
 
-  // In a real application, you would manage server lifecycles properly.
-  // For this example, we'll exit after the task is done.
+  const responderInfo = searchResults[0];
+  console.log(`Found responder agent: ${responderInfo.id}`);
+
+  // 2. Add the discovered agent to its local registry
+  await requesterAgent.registry.add(responderInfo);
+
+  // 3. Now, send the task
+  console.log("Requester sending 'greet' task to responder...");
+  const result = await requesterAgent.sendTask(responderInfo.id, 'greet', {
+    name: 'World',
+  });
+
+  console.log('Requester received response:', result);
   process.exit(0);
 }
 
-main().catch((error) => {
-  console.error('An error occurred:', error.message);
-  process.exit(1);
-});
+main().catch(console.error);
 ```
+
+Run this in a third terminal: `ts-node requester-agent.ts`. You should see the successful task exchange!
 
 ### Advanced Agent Search
 

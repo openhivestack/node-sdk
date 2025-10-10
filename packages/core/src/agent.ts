@@ -7,8 +7,9 @@ import {
   IAgentRegistry,
   AgentErrorTypes,
   AgentMessageTypes,
+  IAgentRegistryEntry,
 } from './types';
-import { AgentError, AgentIdentity, AgentSignature } from './utils';
+import { AgentError, AgentIdentity } from './utils';
 import { AgentConfig } from './utils/agent-config';
 import { AgentServer } from './utils/agent-server';
 import { InMemoryRegistry } from './utils/in-memory-registry';
@@ -22,7 +23,7 @@ export class Agent {
   private config: AgentConfig;
   private agentIdentity: AgentIdentity;
   private capabilityHandlers: Map<string, CapabilityHandler> = new Map();
-  private registry: IAgentRegistry;
+  public registry: IAgentRegistry;
 
   constructor(
     config: IAgentConfig | string,
@@ -101,15 +102,51 @@ export class Agent {
     return this; // For chaining
   }
 
-  public async register() {
-    await this.registry.add({
+  public async register(registryEndpoint?: string) {
+    const agentInfo = {
       ...this.config.info(),
       publicKey: this.agentIdentity.getPublicKey(),
-    });
+    };
+    await this.registry.add(agentInfo);
+
+    if (registryEndpoint) {
+      try {
+        await got.post(`${registryEndpoint}/registry/add`, {
+          json: agentInfo,
+        });
+      } catch (error) {
+        throw new AgentError(
+          AgentErrorTypes.PROCESSING_FAILED,
+          `Failed to register with remote registry at ${registryEndpoint}: ${error}`
+        );
+      }
+    }
+  }
+
+  public async search(
+    query: string,
+    registryEndpoint: string
+  ): Promise<IAgentRegistryEntry[]> {
+    try {
+      const url = new URL(`${registryEndpoint}/registry/search`);
+      url.searchParams.append('q', query);
+
+      const results = await got
+        .get(url.toString())
+        .json<IAgentRegistryEntry[]>();
+
+      return results;
+    } catch (error) {
+      throw new AgentError(
+        AgentErrorTypes.AGENT_NOT_FOUND,
+        `Failed to search for agents with query "${query}" from registry at ${registryEndpoint}: ${error}`
+      );
+    }
   }
 
   public async publicKey(agentId: string): Promise<string | undefined> {
-    return (await this.registry.get(agentId)).publicKey;
+    const agent = await this.registry.get(agentId);
+    return agent?.publicKey;
   }
 
   public identity(): AgentIdentity {

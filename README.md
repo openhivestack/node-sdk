@@ -8,9 +8,9 @@ For details on the protocol check out [H.I.V.E Procotol Specification](https://o
 
 This workspace is a monorepo managed by [Nx](https://nx.dev). It contains the following packages:
 
-| Package               | Description                                                              |
-| --------------------- | ------------------------------------------------------------------------ |
-| `@open-hive/core`     | Core types, interfaces, and error definitions for the H.I.V.E. protocol. |
+| Package                                  | Description                                                              |
+| ---------------------------------------- | ------------------------------------------------------------------------ |
+| [`@open-hive/core`](/packages/core/)     | Core types, interfaces, and error definitions for the H.I.V.E. protocol. |
 
 ## 🚀 Getting Started
 
