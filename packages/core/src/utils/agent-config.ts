@@ -18,7 +18,10 @@ export class AgentConfig {
     name: '',
     description: '',
     version: '',
-    publicKey: '',
+    keys: {
+      publicKey: '',
+      privateKey: '',
+    },
     env: '.env',
   };
 
@@ -30,9 +33,11 @@ export class AgentConfig {
    * @param config - Either a path to a .hive.yml file or an IAgentConfig object
    */
   constructor(config?: string | IAgentConfig) {
-    if (typeof config === 'string' || config === undefined) {
-      const filePath = config || path.join(process.cwd(), '.hive.yml');
-      this.config = this.loadConfigFile(filePath);
+    if (typeof config === 'string') {
+      const filePath = config;
+      this.config = this.load(filePath);
+    } else if (config === undefined) {
+      this.config = this.load(path.join(process.cwd(), '.hive.yml'));
     } else {
       this.config = this.validateConfig(config);
     }
@@ -41,11 +46,13 @@ export class AgentConfig {
   /**
    * Load and parse the configuration file
    */
-  private loadConfigFile(filePath: string): IAgentConfig {
+  private load(filePath: string): IAgentConfig {
     try {
       const envPath = this.config.env || '.env';
-      const env = dotenv.config({ path: path.join(process.cwd(), envPath) }).parsed;
-      
+      const env = dotenv.config({
+        path: path.join(process.cwd(), envPath),
+      }).parsed;
+
       // Check if file exists
       if (!fs.existsSync(filePath)) {
         throw new AgentError(
@@ -58,7 +65,9 @@ export class AgentConfig {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const template = Handlebars.compile(fileContent);
       const compiledConfig = template({
-        env: Object.fromEntries(Object.entries(env || {}).filter(([key]) => key.startsWith('HIVE_'))),
+        env: Object.fromEntries(
+          Object.entries(env || {}).filter(([key]) => key.startsWith('HIVE_'))
+        ),
       });
       const parsedConfig = yaml.load(compiledConfig) as IAgentConfig;
 
@@ -136,6 +145,33 @@ export class AgentConfig {
       );
     }
 
+    // Validate public and private keys
+    if (
+      mergedConfig.keys.publicKey?.length === 0 ||
+      mergedConfig.keys.privateKey?.length === 0
+    ) {
+      throw new AgentError(
+        AgentErrorTypes.CONFIG_ERROR,
+        'Missing required field: keys.publicKey or keys.privateKey'
+      );
+    }
+
+    try {
+      mergedConfig.keys.publicKey = Buffer.from(
+        mergedConfig.keys.publicKey,
+        'base64'
+      ).toString('utf8');
+      mergedConfig.keys.privateKey = Buffer.from(
+        mergedConfig.keys.privateKey,
+        'base64'
+      ).toString('utf8');
+    } catch (error) {
+      throw new AgentError(
+        AgentErrorTypes.CONFIG_ERROR,
+        'Failed to decode base64 keys. Please ensure publicKey and privateKey are correctly encoded.'
+      );
+    }
+
     // Validate each capability
     mergedConfig.capabilities.forEach((capability) => {
       if (capability.id?.length === 0) {
@@ -145,14 +181,20 @@ export class AgentConfig {
         );
       }
 
-      if (capability.input?.length === 0 || typeof capability.input !== 'object') {
+      if (
+        capability.input?.length === 0 ||
+        typeof capability.input !== 'object'
+      ) {
         throw new AgentError(
           AgentErrorTypes.CONFIG_ERROR,
           `Capability "${capability.id}" missing required field: input`
         );
       }
 
-      if (capability.output?.length === 0 || typeof capability.output !== 'object') {
+      if (
+        capability.output?.length === 0 ||
+        typeof capability.output !== 'object'
+      ) {
         throw new AgentError(
           AgentErrorTypes.CONFIG_ERROR,
           `Capability "${capability.id}" missing required field: output`
@@ -210,6 +252,13 @@ export class AgentConfig {
    */
   public logLevel(): string {
     return this.config.logLevel;
+  }
+
+  /**
+   * Get keys
+   */
+  public keys(): { publicKey: string; privateKey: string } {
+    return this.config.keys;
   }
 
   /**

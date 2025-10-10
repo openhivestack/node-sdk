@@ -5,7 +5,6 @@ import {
   AgentMessageTypes,
 } from '../types';
 import { AgentConfig } from './agent-config';
-import { AgentSignature } from './agent-signature';
 import { AgentError } from './agent-error';
 import { AgentMessage } from './agent-message';
 
@@ -14,20 +13,14 @@ import { AgentMessage } from './agent-message';
  */
 export class AgentIdentity {
   private config: AgentConfig;
-  private privateKey: string;
-  private publicKey: string;
 
   /**
    * Create a new H.I.V.E. agent identity
    *
    * @param config - Agent configuration
-   * @param privateKey - Ed25519 private key in PEM format
-   * @param publicKey - Ed25519 public key in PEM format
    */
-  constructor(config: AgentConfig, privateKey: string, publicKey: string) {
+  constructor(config: AgentConfig) {
     this.config = config;
-    this.privateKey = privateKey;
-    this.publicKey = publicKey;
   }
 
   /**
@@ -37,8 +30,7 @@ export class AgentIdentity {
    * @returns New AgentIdentity instance
    */
   static create(config: AgentConfig): AgentIdentity {
-    const { publicKey, privateKey } = AgentSignature.generateKeyPair();
-    return new AgentIdentity(config, privateKey, publicKey);
+    return new AgentIdentity(config);
   }
 
   /**
@@ -80,7 +72,14 @@ export class AgentIdentity {
    * Get agent public key
    */
   public getPublicKey(): string {
-    return this.publicKey;
+    return this.config.keys().publicKey;
+  }
+
+  /**
+   * Get agent private key
+   */
+  public getPrivateKey(): string {
+    return this.config.keys().privateKey;
   }
 
   /**
@@ -105,7 +104,7 @@ export class AgentIdentity {
       toAgentId,
       capability,
       params,
-      this.privateKey,
+      this.config.keys().privateKey,
       taskId,
       deadline
     );
@@ -133,7 +132,7 @@ export class AgentIdentity {
       toAgentId,
       taskId,
       status,
-      this.privateKey,
+      this.config.keys().privateKey,
       estimatedCompletion,
       reason
     );
@@ -158,7 +157,7 @@ export class AgentIdentity {
       this.id(),
       toAgentId,
       taskId,
-      this.privateKey,
+      this.config.keys().privateKey,
       progress,
       message
     );
@@ -182,7 +181,7 @@ export class AgentIdentity {
       toAgentId,
       taskId,
       result,
-      this.privateKey
+      this.config.keys().privateKey
     );
   }
 
@@ -212,7 +211,7 @@ export class AgentIdentity {
       error,
       message,
       retry,
-      this.privateKey,
+      this.config.keys().privateKey,
       code
     );
   }
@@ -231,7 +230,7 @@ export class AgentIdentity {
     return AgentMessage.createCapabilityQuery(
       this.id(),
       toAgentId,
-      this.privateKey,
+      this.config.keys().privateKey,
       capabilities
     );
   }
@@ -251,7 +250,7 @@ export class AgentIdentity {
       this.id(),
       toAgentId,
       this.capabilities(),
-      this.privateKey,
+      this.config.keys().privateKey,
       endpoint
     );
   }

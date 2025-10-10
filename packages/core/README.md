@@ -22,7 +22,9 @@ Here's how to create a complete, hive agent in just a few steps.
 
 ### 1. Configure Your Agent
 
-Create a `.hive.yml` file in your project root:
+Create a `.hive.yml` file in your project root. This file is the single source of truth for your agent's identity and configuration.
+
+The configuration loader supports environment variable substitution using Handlebars syntax. It automatically loads variables from a `.env` file in your project root (or a file specified under the `env` key).
 
 ```yaml
 id: 'hive:agentid:hello-world-agent'
@@ -30,6 +32,12 @@ name: 'HelloWorldAgent'
 description: 'A simple agent that provides greetings.'
 version: '0.1.0'
 port: 11100
+
+# Agent's cryptographic keys.
+# It's highly recommended to load the private key from an environment variable.
+keys:
+  publicKey: 'base64_encoded_public_key'
+  privateKey: '{{env.HIVE_AGENT_PRIVATE_KEY}}'
 
 capabilities:
   - id: 'hello-world'
@@ -40,21 +48,22 @@ capabilities:
       response: 'string'
 ```
 
+Place your `HIVE_AGENT_PRIVATE_KEY` in a `.env` file:
+
+```
+HIVE_AGENT_PRIVATE_KEY=your_base64_encoded_private_key
+```
+
 ### 2. Create Your Agent File
 
 Create an `index.ts` file:
 
 ```typescript
-import { Agent, IAgentConfig } from '@open-hive/core';
-import { readFileSync } from 'fs';
-import { load } from 'js-yaml';
-
-// Load agent configuration from .hive.yml
-const config = load(readFileSync('.hive.yml', 'utf8')) as IAgentConfig;
+import { Agent } from '@open-hive/core';
 
 async function main() {
-  // 1. Create a new agent instance
-  const agent = new Agent(config);
+  // 1. Create a new agent instance by loading the .hive.yml file
+  const agent = new Agent('.hive.yml');
 
   // 2. Register a handler for the 'hello-world' capability
   agent.capability('hello-world', async (params) => {
@@ -83,6 +92,8 @@ main().catch((error) => {
 
 You can now compile and run your `index.ts` file. Your agent will start an HTTP server on port `11100` and be ready to accept `task_request` messages for its `hello-world` capability.
 
+The agent will automatically load its configuration, including its cryptographic keys, from the `.hive.yml` file.
+
 ## Advanced Usage
 
 ### Integrating with Existing Frameworks
@@ -95,8 +106,8 @@ The `Agent` class is decoupled from the HTTP server, allowing you to integrate i
 import { Agent } from '@open-hive/core';
 import express from 'express';
 
-// (Agent setup is the same as above)
-const agent = new Agent(config);
+// 1. Create agent from config file
+const agent = new Agent('.hive.yml');
 // ... register capabilities ...
 
 const app = express();
@@ -121,9 +132,10 @@ app.post('/tasks', async (req, res) => {
     'error' in responseData
       ? identity.createTaskError(
           message.from,
-          responseData.task_id,
+          (responseData as any).task_id,
           responseData.error,
-          responseData.message
+          responseData.message,
+          (responseData as any).retry
         )
       : identity.createTaskResult(
           message.from,
@@ -148,7 +160,7 @@ For agents to communicate, they must be aware of each other. This is managed via
 
 **Example: Sending a Task**
 
-Here's a complete example of a "requester" agent sending a task to a "responder" agent.
+Here's a complete example of a "requester" agent sending a task to a "responder" agent. For this example, we'll define their configurations as objects, but in a real application, each agent would have its own `.hive.yml` file.
 
 ```typescript
 import { Agent, InMemoryRegistry, IAgentConfig } from '@open-hive/core';
@@ -164,6 +176,10 @@ async function main() {
     description: 'An agent that responds to greetings.',
     version: '1.0.0',
     endpoint: 'http://localhost:11101',
+    keys: {
+      publicKey: 'responder_public_key',
+      privateKey: 'responder_private_key',
+    },
     capabilities: [
       {
         id: 'greet',
@@ -173,16 +189,13 @@ async function main() {
       },
     ],
   };
-  const responderAgent = new Agent(
-    responderConfig,
-    undefined,
-    undefined,
-    registry
-  );
+  const responderAgent = new Agent(responderConfig, registry);
   responderAgent.capability('greet', async (params) => {
     console.log(`Responder received greet task with params:`, params);
     return { message: `Hello, ${params.name}!` };
   });
+
+  // Register the responder to make it discoverable
   await responderAgent.register();
 
   // 3. Create the "requester" agent
@@ -192,14 +205,15 @@ async function main() {
     description: 'An agent that sends requests.',
     version: '1.0.0',
     endpoint: 'http://localhost:11102',
+    keys: {
+      publicKey: 'requester_public_key',
+      privateKey: 'requester_private_key',
+    },
     capabilities: [],
   };
-  const requesterAgent = new Agent(
-    requesterConfig,
-    undefined,
-    undefined,
-    registry
-  );
+  const requesterAgent = new Agent(requesterConfig, registry);
+
+  // Register the requester to make it discoverable
   await requesterAgent.register();
 
   // 4. Start the responder's server so it can listen for tasks

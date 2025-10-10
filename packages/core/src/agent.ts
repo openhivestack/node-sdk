@@ -25,24 +25,11 @@ export class Agent {
   private registry: IAgentRegistry;
 
   constructor(
-    config: IAgentConfig,
-    privateKey?: string,
-    publicKey?: string,
+    config: IAgentConfig | string,
     registry: IAgentRegistry = new InMemoryRegistry()
   ) {
     this.config = new AgentConfig(config);
-
-    const keys =
-      privateKey && publicKey
-        ? { privateKey, publicKey }
-        : AgentSignature.generateKeyPair();
-
-    this.agentIdentity = new AgentIdentity(
-      this.config,
-      keys.privateKey,
-      keys.publicKey
-    );
-
+    this.agentIdentity = new AgentIdentity(this.config);
     this.registry = registry;
   }
 

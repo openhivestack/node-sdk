@@ -9,7 +9,10 @@ export interface IAgentConfig {
   description: string;
   version: string;
   endpoint: string;
-  publicKey: string;
+  keys: {
+    publicKey: string;
+    privateKey: string;
+  };
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   capabilities: IAgentCapability[];
   env?: string;
