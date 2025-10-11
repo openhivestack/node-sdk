@@ -1,3 +1,4 @@
+import path from 'node:path';
 import {
   IAgentConfig,
   IAgentMessage,
@@ -26,7 +27,7 @@ export class Agent {
   public registry: IAgentRegistry;
 
   constructor(
-    config: IAgentConfig | string,
+    config: IAgentConfig | string = path.join(process.cwd(), '.hive.yml'),
     registry: IAgentRegistry = new InMemoryRegistry()
   ) {
     this.config = new AgentConfig(config);
