@@ -47,7 +47,7 @@ The code in this repository is primarily licensed under the **GNU Affero General
 
 The AGPLv3 is a strong copyleft license. This means you are free to use, modify, and distribute this software, but if you run a modified version of the software as a public network service (Software as a Service, or SaaS), you must offer the source code of your modified version to your users.
 
-**See the [LICENSE-AGPLv3.txt] file for full details.**
+**See the [LICENSE.md](LICENSE.md) file for full details.**
 
 ### 2. Commercial License (Proprietary)
 

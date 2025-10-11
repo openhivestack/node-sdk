@@ -101,7 +101,7 @@ The `AgentServer` now includes a full set of RESTful endpoints that expose the a
 ### Registry API Endpoints
 
 - `POST /registry/add`: Registers an agent. The request body should be an `IAgentRegistryEntry` object.
-- `GET /registry`: Returns a list of all registered agents.
+- `GET /registry/list`: Returns a list of all registered agents.
 - `GET /registry/:agentId`: Retrieves the details of a single agent by its ID.
 - `DELETE /registry/:agentId`: Removes an agent from the registry.
 

@@ -40,7 +40,7 @@ export class AgentServer {
       }
     });
 
-    this.app.get('/registry', async (req: Request, res: Response) => {
+    this.app.get('/registry/list', async (req: Request, res: Response) => {
       try {
         const agents = await this.agent.registry.list();
         res.status(200).json(agents);

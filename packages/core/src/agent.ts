@@ -104,10 +104,15 @@ export class Agent {
   }
 
   public async register(registryEndpoint?: string) {
+    const {keys, ...info} = this.config.info();
+
     const agentInfo = {
-      ...this.config.info(),
-      publicKey: this.agentIdentity.getPublicKey(),
+      ...info,
+      keys: {
+        publicKey: keys.publicKey,
+      },
     };
+
     await this.registry.add(agentInfo);
 
     if (registryEndpoint) {
@@ -147,7 +152,7 @@ export class Agent {
 
   public async publicKey(agentId: string): Promise<string | undefined> {
     const agent = await this.registry.get(agentId);
-    return agent?.publicKey;
+    return agent?.keys.publicKey;
   }
 
   public identity(): AgentIdentity {
@@ -197,7 +202,7 @@ export class Agent {
         })
         .json();
 
-      if (!this.agentIdentity.verifyMessage(response, targetAgent.publicKey)) {
+      if (!this.agentIdentity.verifyMessage(response, targetAgent.keys.publicKey)) {
         throw new AgentError(
           AgentErrorTypes.INVALID_SIGNATURE,
           'Response signature verification failed.'

@@ -1,6 +1,6 @@
 import { IAgentConfig } from "./agent-config.interface";
 
-export type IAgentRegistryEntry = Omit<IAgentConfig, 'keys'> & { publicKey: string };
+export type IAgentRegistryEntry = Omit<IAgentConfig, 'keys'> & { keys: { publicKey: string } };
 
 export interface IAgentRegistry {
   add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry>;
