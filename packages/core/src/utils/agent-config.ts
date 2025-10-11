@@ -48,10 +48,10 @@ export class AgentConfig {
    */
   private load(filePath: string): IAgentConfig {
     try {
-      const envPath = this.config.env || '.env';
+      const envPath = this.config?.env || '.env';
       const env = dotenv.config({
         path: path.join(process.cwd(), envPath),
-      }).parsed;
+      }).parsed || {};
 
       // Check if file exists
       if (!fs.existsSync(filePath)) {
@@ -66,7 +66,7 @@ export class AgentConfig {
       const template = Handlebars.compile(fileContent);
       const compiledConfig = template({
         env: Object.fromEntries(
-          Object.entries(env || {}).filter(([key]) => key.startsWith('HIVE_'))
+          Object.entries(env).filter(([key]) => key.startsWith('HIVE_'))
         ),
       });
       const parsedConfig = yaml.load(compiledConfig) as IAgentConfig;
