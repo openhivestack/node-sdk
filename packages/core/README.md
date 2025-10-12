@@ -207,6 +207,7 @@ import { Agent } from '@open-hive/core';
 // with a capability called 'greet'.
 
 const REGISTRY_ENDPOINT = 'http://localhost:11100';
+const REMOTE_REGISTRY_NAME = 'remote';
 
 async function main() {
   const responderAgent = new Agent();
@@ -215,8 +216,11 @@ async function main() {
     return { message: `Hello, ${params.name}!` };
   });
 
-  // Register itself with the registry agent
-  await responderAgent.register(REGISTRY_ENDPOINT);
+  // To register with a remote registry, add it by providing its endpoint.
+  responderAgent.addRegistry(REGISTRY_ENDPOINT, REMOTE_REGISTRY_NAME);
+
+  // Then, register with it by name
+  await responderAgent.register(REMOTE_REGISTRY_NAME);
   console.log('Responder agent registered successfully.');
 
   const server = responderAgent.createServer();
@@ -241,19 +245,21 @@ import { Agent } from '@open-hive/core';
 // Create a .hive.yml for this agent listening on port 11102
 
 const REGISTRY_ENDPOINT = 'http://localhost:11100';
+const REMOTE_REGISTRY_NAME = 'remote';
 
 async function main() {
   const requesterAgent = new Agent();
 
-  // Register itself with the registry agent
-  await requesterAgent.register(REGISTRY_ENDPOINT);
+  // Add the remote registry and register this agent with it
+  requesterAgent.addRegistry(REGISTRY_ENDPOINT, REMOTE_REGISTRY_NAME);
+  await requesterAgent.register(REMOTE_REGISTRY_NAME);
   console.log('Requester agent registered successfully.');
 
-  // 1. Search for agents with the 'greet' capability
+  // 1. Search for agents with the 'greet' capability using the remote registry
   console.log("Searching for agents with 'greet' capability...");
   const searchResults = await requesterAgent.search(
     'capability:greet',
-    REGISTRY_ENDPOINT
+    REMOTE_REGISTRY_NAME
   );
 
   if (searchResults.length === 0) {
@@ -264,8 +270,8 @@ async function main() {
   const responderInfo = searchResults[0];
   console.log(`Found responder agent: ${responderInfo.id}`);
 
-  // 2. Add the discovered agent to its local registry
-  await requesterAgent.activeRegistry.add(responderInfo);
+  // 2. Add the discovered agent to the local registry to enable communication
+  await requesterAgent.registry.add(responderInfo);
 
   // 3. Now, send the task
   console.log("Requester sending 'greet' task to responder...");

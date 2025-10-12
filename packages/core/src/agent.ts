@@ -10,15 +10,15 @@ import {
   AgentMessageTypes,
   IAgentRegistryEntry,
 } from './types';
-import { AgentError, AgentIdentity } from './utils';
+import { AgentError, AgentIdentity, RemoteRegistry } from './utils';
 import { AgentConfig } from './utils/agent-config';
 import { AgentServer } from './utils/agent-server';
 import { InMemoryRegistry } from './utils/in-memory-registry';
 import got from 'got';
 
 type CapabilityHandler = (
-  params: Record<string, any>
-) => Promise<Record<string, any>>;
+  params: Record<string, unknown>
+) => Promise<Record<string, unknown>>;
 
 export class Agent {
   private config: AgentConfig;
@@ -33,7 +33,10 @@ export class Agent {
   ) {
     this.config = new AgentConfig(config);
     this.agentIdentity = new AgentIdentity(this.config);
-    this._registry.set('internal', new InMemoryRegistry('internal', this.config.endpoint()));
+    this._registry.set(
+      'internal',
+      new InMemoryRegistry('internal', this.config.endpoint())
+    );
 
     if (registry) {
       this._registry.set(registry.name, registry);
@@ -48,8 +51,18 @@ export class Agent {
     return this;
   }
 
-  public addRegistry(registry: IAgentRegistry) {
-    this._registry.set(registry.name, registry);
+  public addRegistry(
+    registryOrEndpoint: IAgentRegistry | string,
+    name?: string
+  ) {
+    if (typeof registryOrEndpoint === 'string') {
+      const endpoint = registryOrEndpoint;
+      const registryName = name || endpoint;
+      const newRegistry = new RemoteRegistry(registryName, endpoint);
+      this._registry.set(newRegistry.name, newRegistry);
+    } else {
+      this._registry.set(registryOrEndpoint.name, registryOrEndpoint);
+    }
     return this;
   }
 
@@ -138,8 +151,10 @@ export class Agent {
     return this; // For chaining
   }
 
-  public async register(registryEndpoint?: string) {
-    const {keys, ...info} = this.config.info();
+  public async register(
+    registry: string | IAgentRegistry = this.activeRegistry
+  ) {
+    const { keys, ...info } = this.config.info();
 
     const agentInfo = {
       ...info,
@@ -148,39 +163,45 @@ export class Agent {
       },
     };
 
-    await this.activeRegistry.add(agentInfo);
+    if (typeof registry === 'string') {
+      registry = this.getRegistry(registry);
+    }
 
-    if (registryEndpoint) {
-      try {
-        await got.post(`${registryEndpoint}/registry/add`, {
-          json: agentInfo,
-        });
-      } catch (error) {
-        throw new AgentError(
-          AgentErrorTypes.PROCESSING_FAILED,
-          `Failed to register with remote registry at ${registryEndpoint}: ${error}`
-        );
-      }
+    if (!registry) {
+      throw new AgentError(AgentErrorTypes.CONFIG_ERROR, `Registry not found.`);
+    }
+
+    try {
+      await registry.add(agentInfo);
+    } catch (error) {
+      throw new AgentError(
+        AgentErrorTypes.PROCESSING_FAILED,
+        `Failed to register with registry '${
+          typeof registry === 'string' ? registry : registry.name
+        }': ${error}`
+      );
     }
   }
 
   public async search(
     query: string,
-    registryEndpoint: string
+    registry: string | IAgentRegistry = this.activeRegistry
   ): Promise<IAgentRegistryEntry[]> {
+    if (typeof registry === 'string') {
+      registry = this.getRegistry(registry);
+    }
+
+    if (!registry) {
+      throw new AgentError(AgentErrorTypes.CONFIG_ERROR, `Registry not found.`);
+    }
+
     try {
-      const url = new URL(`${registryEndpoint}/registry/search`);
-      url.searchParams.append('q', query);
-
-      const results = await got
-        .get(url.toString())
-        .json<IAgentRegistryEntry[]>();
-
+      const results = await registry.search(query);
       return results;
     } catch (error) {
       throw new AgentError(
         AgentErrorTypes.AGENT_NOT_FOUND,
-        `Failed to search for agents with query "${query}" from registry at ${registryEndpoint}: ${error}`
+        `Failed to search for agents with query "${query}" from registry '${registry.name}': ${error}`
       );
     }
   }
@@ -201,7 +222,7 @@ export class Agent {
   public port(): number {
     return this.config.port();
   }
-  
+
   public host(): string {
     return this.config.host();
   }
@@ -213,7 +234,7 @@ export class Agent {
   public async sendTask(
     toAgentId: string,
     capability: string,
-    params: Record<string, any>,
+    params: Record<string, unknown>,
     taskId?: string
   ): Promise<ITaskResultData | ITaskErrorData> {
     const targetAgent = await this.activeRegistry.get(toAgentId);
@@ -245,7 +266,9 @@ export class Agent {
         })
         .json();
 
-      if (!this.agentIdentity.verifyMessage(response, targetAgent.keys.publicKey)) {
+      if (
+        !this.agentIdentity.verifyMessage(response, targetAgent.keys.publicKey)
+      ) {
         throw new AgentError(
           AgentErrorTypes.INVALID_SIGNATURE,
           'Response signature verification failed.'
