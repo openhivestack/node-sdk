@@ -24,15 +24,46 @@ export class Agent {
   private config: AgentConfig;
   private agentIdentity: AgentIdentity;
   private capabilityHandlers: Map<string, CapabilityHandler> = new Map();
-  public registry: IAgentRegistry;
+  public registry: Map<string, IAgentRegistry> = new Map();
+  public activeRegistry: IAgentRegistry;
 
   constructor(
     config: IAgentConfig | string = path.join(process.cwd(), '.hive.yml'),
-    registry: IAgentRegistry = new InMemoryRegistry()
+    registry?: IAgentRegistry
   ) {
     this.config = new AgentConfig(config);
     this.agentIdentity = new AgentIdentity(this.config);
-    this.registry = registry;
+    this.registry.set('internal', new InMemoryRegistry('internal', this.config.endpoint()));
+
+    if (registry) {
+      this.registry.set(registry.name, registry);
+      this.activeRegistry = registry;
+    } else {
+      this.activeRegistry = this.registry.get('internal') as IAgentRegistry;
+    }
+  }
+
+  public useRegistry(name: string) {
+    this.activeRegistry = this.registry.get(name) as IAgentRegistry;
+    return this;
+  }
+
+  public addRegistry(registry: IAgentRegistry) {
+    this.registry.set(registry.name, registry);
+    return this;
+  }
+
+  public removeRegistry(name: string) {
+    this.registry.delete(name);
+    return this;
+  }
+
+  public getRegistry(name: string) {
+    return this.registry.get(name) as IAgentRegistry;
+  }
+
+  public listRegistries() {
+    return Array.from(this.registry.values());
   }
 
   public async process(
@@ -113,7 +144,7 @@ export class Agent {
       },
     };
 
-    await this.registry.add(agentInfo);
+    await this.activeRegistry.add(agentInfo);
 
     if (registryEndpoint) {
       try {
@@ -151,7 +182,7 @@ export class Agent {
   }
 
   public async publicKey(agentId: string): Promise<string | undefined> {
-    const agent = await this.registry.get(agentId);
+    const agent = await this.activeRegistry.get(agentId);
     return agent?.keys.publicKey;
   }
 
@@ -161,6 +192,14 @@ export class Agent {
 
   public endpoint(): string {
     return this.config.endpoint();
+  }
+
+  public port(): number {
+    return this.config.port();
+  }
+  
+  public host(): string {
+    return this.config.host();
   }
 
   public createServer(): AgentServer {
@@ -173,7 +212,7 @@ export class Agent {
     params: Record<string, any>,
     taskId?: string
   ): Promise<ITaskResultData | ITaskErrorData> {
-    const targetAgent = await this.registry.get(toAgentId);
+    const targetAgent = await this.activeRegistry.get(toAgentId);
     if (!targetAgent) {
       throw new AgentError(
         AgentErrorTypes.AGENT_NOT_FOUND,

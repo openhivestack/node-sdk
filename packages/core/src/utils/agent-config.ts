@@ -18,6 +18,8 @@ export class AgentConfig {
     name: '',
     description: '',
     version: '',
+    host: 'localhost',
+    port: 11100,
     keys: {
       publicKey: '',
       privateKey: '',
@@ -70,6 +72,8 @@ export class AgentConfig {
         ),
       });
       const parsedConfig = yaml.load(compiledConfig) as IAgentConfig;
+      parsedConfig.host = parsedConfig.host || new URL(parsedConfig.endpoint).host;
+      parsedConfig.port = parsedConfig.port || parseInt(new URL(parsedConfig.endpoint).port);
 
       // Apply defaults and validate
       return this.validateConfig(parsedConfig);
@@ -245,6 +249,20 @@ export class AgentConfig {
    */
   public endpoint(): string {
     return this.config.endpoint;
+  }
+
+  /**
+   * Get server host
+   */
+  public host(): string {
+    return this.config.host;
+  }
+
+  /**
+   * Get server port
+   */
+  public port(): number {
+    return this.config.port;
   }
 
   /**

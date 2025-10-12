@@ -62,8 +62,9 @@ Create an `index.ts` file:
 import { Agent } from '@open-hive/core';
 
 async function main() {
-  // 1. Create a new agent instance by loading the .hive.yml file
-  const agent = new Agent('.hive.yml');
+  // 1. Create a new agent instance.
+  // By default, it loads the .hive.yml file from the current directory.
+  const agent = new Agent();
 
   // 2. Register a handler for the 'hello-world' capability
   agent.capability('hello-world', async (params) => {
@@ -264,7 +265,7 @@ async function main() {
   console.log(`Found responder agent: ${responderInfo.id}`);
 
   // 2. Add the discovered agent to its local registry
-  await requesterAgent.registry.add(responderInfo);
+  await requesterAgent.activeRegistry.add(responderInfo);
 
   // 3. Now, send the task
   console.log("Requester sending 'greet' task to responder...");

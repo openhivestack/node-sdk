@@ -9,6 +9,8 @@ export interface IAgentConfig {
   description: string;
   version: string;
   endpoint: string;
+  host: string;
+  port: number;
   keys: {
     publicKey: string;
     privateKey: string;

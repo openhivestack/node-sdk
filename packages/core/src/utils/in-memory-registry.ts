@@ -3,9 +3,13 @@ import { QueryParser } from './query-engine';
 import { AgentError } from './agent-error';
 
 export class InMemoryRegistry implements IAgentRegistry {
+  public name: string;
+  public endpoint: string;
   private db: Map<string, IAgentRegistryEntry>;
 
-  constructor() {
+  constructor(name: string, endpoint: string) {
+    this.name = name;
+    this.endpoint = endpoint;
     this.db = new Map();
   }
 
