@@ -24,8 +24,8 @@ export class Agent {
   private config: AgentConfig;
   private agentIdentity: AgentIdentity;
   private capabilityHandlers: Map<string, CapabilityHandler> = new Map();
-  public registry: Map<string, IAgentRegistry> = new Map();
-  public activeRegistry: IAgentRegistry;
+  private _registry: Map<string, IAgentRegistry> = new Map();
+  private activeRegistry: IAgentRegistry;
 
   constructor(
     config: IAgentConfig | string = path.join(process.cwd(), '.hive.yml'),
@@ -33,37 +33,41 @@ export class Agent {
   ) {
     this.config = new AgentConfig(config);
     this.agentIdentity = new AgentIdentity(this.config);
-    this.registry.set('internal', new InMemoryRegistry('internal', this.config.endpoint()));
+    this._registry.set('internal', new InMemoryRegistry('internal', this.config.endpoint()));
 
     if (registry) {
-      this.registry.set(registry.name, registry);
+      this._registry.set(registry.name, registry);
       this.activeRegistry = registry;
     } else {
-      this.activeRegistry = this.registry.get('internal') as IAgentRegistry;
+      this.activeRegistry = this._registry.get('internal') as IAgentRegistry;
     }
   }
 
   public useRegistry(name: string) {
-    this.activeRegistry = this.registry.get(name) as IAgentRegistry;
+    this.activeRegistry = this._registry.get(name) as IAgentRegistry;
     return this;
   }
 
   public addRegistry(registry: IAgentRegistry) {
-    this.registry.set(registry.name, registry);
+    this._registry.set(registry.name, registry);
     return this;
   }
 
   public removeRegistry(name: string) {
-    this.registry.delete(name);
+    this._registry.delete(name);
     return this;
   }
 
   public getRegistry(name: string) {
-    return this.registry.get(name) as IAgentRegistry;
+    return this._registry.get(name) as IAgentRegistry;
   }
 
   public listRegistries() {
-    return Array.from(this.registry.values());
+    return Array.from(this._registry.values());
+  }
+
+  public get registry(): IAgentRegistry {
+    return this.activeRegistry;
   }
 
   public async process(
