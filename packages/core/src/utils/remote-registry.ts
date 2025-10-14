@@ -28,7 +28,7 @@ export class RemoteRegistry implements IAgentRegistry {
 
   public async get(agentId: string): Promise<IAgentRegistryEntry> {
     try {
-      const url = new URL(`${this.endpoint}/registry/get/${agentId}`);
+      const url = new URL(`${this.endpoint}/registry/${agentId}`);
       return await got.get(url.toString()).json<IAgentRegistryEntry>();
     } catch (error) {
       throw new AgentError(
@@ -85,7 +85,7 @@ export class RemoteRegistry implements IAgentRegistry {
 
   public async update(agent: IAgentRegistryEntry): Promise<void> {
     try {
-      await got.put(`${this.endpoint}/registry/update`, {
+      await got.put(`${this.endpoint}/registry/${agent.id}`, {
         json: agent,
       });
     } catch (error) {

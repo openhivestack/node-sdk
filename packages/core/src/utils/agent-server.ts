@@ -84,6 +84,16 @@ export class AgentServer {
       }
     );
 
+    this.app.put('/registry/:agentId', async (req: Request, res: Response) => {
+      try {
+        const agentInfo = req.body;
+        await this.agent.registry.update(agentInfo);
+        res.status(200).json(agentInfo);
+      } catch (error) {
+        res.status(500).json({ error: (error as Error).message });
+      }
+    });
+
     this.app.post('/tasks', async (req: Request, res: Response) => {
       const message: IAgentMessage = req.body;
 
