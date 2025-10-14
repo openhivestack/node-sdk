@@ -16,6 +16,9 @@ const log = debug('openhive:agent-identity');
  */
 export class AgentIdentity {
   private config: AgentConfig;
+  private privateKeyPem: string;
+  private publicKeyPem: string;
+  private publicKeyPemB64: string;
 
   /**
    * Create a new H.I.V.E. agent identity
@@ -24,6 +27,15 @@ export class AgentIdentity {
    */
   constructor(config: AgentConfig) {
     this.config = config;
+    this.publicKeyPemB64 = this.config.keys().publicKey;
+    this.privateKeyPem = Buffer.from(
+      this.config.keys().privateKey,
+      'base64'
+    ).toString('utf-8');
+    this.publicKeyPem = Buffer.from(
+      this.config.keys().publicKey,
+      'base64'
+    ).toString('utf-8');
     log(`AgentIdentity initialized for agent: ${this.id()}`);
   }
 
@@ -77,14 +89,14 @@ export class AgentIdentity {
    * Get agent public key
    */
   public getPublicKey(): string {
-    return this.config.keys().publicKey;
+    return this.publicKeyPemB64;
   }
 
   /**
    * Get agent private key
    */
   public getPrivateKey(): string {
-    return this.config.keys().privateKey;
+    return this.privateKeyPem;
   }
 
   /**
@@ -112,7 +124,7 @@ export class AgentIdentity {
       toAgentId,
       capability,
       params,
-      this.config.keys().privateKey,
+      this.privateKeyPem,
       taskId,
       deadline
     );
@@ -141,7 +153,7 @@ export class AgentIdentity {
       toAgentId,
       taskId,
       status,
-      this.config.keys().privateKey,
+      this.privateKeyPem,
       estimatedCompletion,
       reason
     );
@@ -167,7 +179,7 @@ export class AgentIdentity {
       this.id(),
       toAgentId,
       taskId,
-      this.config.keys().privateKey,
+      this.privateKeyPem,
       progress,
       message
     );
@@ -192,7 +204,7 @@ export class AgentIdentity {
       toAgentId,
       taskId,
       result,
-      this.config.keys().privateKey
+      this.privateKeyPem
     );
   }
 
@@ -223,7 +235,7 @@ export class AgentIdentity {
       error,
       message,
       retry,
-      this.config.keys().privateKey,
+      this.privateKeyPem,
       code
     );
   }
@@ -243,7 +255,7 @@ export class AgentIdentity {
     return AgentMessage.createCapabilityQuery(
       this.id(),
       toAgentId,
-      this.config.keys().privateKey,
+      this.privateKeyPem,
       capabilities
     );
   }
@@ -264,7 +276,7 @@ export class AgentIdentity {
       this.id(),
       toAgentId,
       this.capabilities(),
-      this.config.keys().privateKey,
+      this.privateKeyPem,
       endpoint
     );
   }
@@ -278,7 +290,8 @@ export class AgentIdentity {
    */
   public verifyMessage(message: IAgentMessage, publicKey: string): boolean {
     log(`Verifying message signature from '${message.from}'`);
-    const isValid = AgentMessage.verifySignature(message, publicKey);
+    const publicKeyPem = Buffer.from(publicKey, 'base64').toString('utf-8');
+    const isValid = AgentMessage.verifySignature(message, publicKeyPem);
     log(`Signature from '${message.from}' is ${isValid ? 'valid' : 'invalid'}`);
     return isValid;
   }

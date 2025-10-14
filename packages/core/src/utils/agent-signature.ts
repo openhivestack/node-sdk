@@ -1,14 +1,15 @@
-import * as crypto from 'crypto';
 import { AgentError } from './agent-error';
 import { AgentErrorTypes } from '../types';
 import debug from 'debug';
 import stringify from 'json-stable-stringify';
+import * as crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 
 const log = debug('openhive:agent-signature');
 
 /**
  * Crypto utility for H.I.V.E. Protocol
- * Provides methods for Ed25519 key generation, signing, and verification
+ * Provides methods for Ed25519 key generation, signing, and verification using PEM
  */
 export class AgentSignature {
   /**
@@ -18,25 +19,16 @@ export class AgentSignature {
    */
   static generateKeyPair(): { publicKey: string; privateKey: string } {
     log('Generating new Ed25519 key pair');
-    try {
-      const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519', {
-        publicKeyEncoding: { type: 'spki', format: 'pem' },
-        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-      });
-
-      log('Key pair generated successfully');
-      return { publicKey, privateKey };
-    } catch (error) {
-      const errorMessage = `Failed to generate key pair: ${
-        error instanceof Error ? error.message : String(error)
-      }`;
-      log(errorMessage, error);
-      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
-    }
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519', {
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+    log('Key pair generated successfully');
+    return { publicKey, privateKey };
   }
 
   /**
-   * Sign a message using Ed25519 private key
+   * Sign a message using Ed25519 private key in PEM format
    *
    * @param message - Object to sign
    * @param privateKey - Ed25519 private key in PEM format
@@ -48,7 +40,7 @@ export class AgentSignature {
       const messageString = stringify(message);
       const signature = crypto.sign(
         null,
-        Buffer.from(messageString as string),
+        Buffer.from(messageString),
         privateKey
       );
       const signatureB64 = signature.toString('base64');
@@ -64,7 +56,7 @@ export class AgentSignature {
   }
 
   /**
-   * Verify a message signature using Ed25519 public key
+   * Verify a message signature using Ed25519 public key in PEM format
    *
    * @param message - Original message object without signature
    * @param signature - Base64 encoded signature
@@ -77,7 +69,7 @@ export class AgentSignature {
       const messageString = stringify(message);
       const isValid = crypto.verify(
         null,
-        Buffer.from(messageString as string),
+        Buffer.from(messageString),
         publicKey,
         Buffer.from(signature, 'base64')
       );
@@ -88,19 +80,8 @@ export class AgentSignature {
         error instanceof Error ? error.message : String(error)
       }`;
       log(errorMessage, error);
-      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
+      return false;
     }
-  }
-
-  /**
-   * Generate a random identifier for agent IDs
-   *
-   * @returns Random hex string
-   */
-  static generateUniqueId(): string {
-    const id = crypto.randomBytes(8).toString('hex');
-    log(`Generated unique ID: ${id}`);
-    return id;
   }
 
   /**
@@ -109,7 +90,7 @@ export class AgentSignature {
    * @returns UUID v4 string
    */
   static generateTaskId(): string {
-    const taskId = crypto.randomUUID();
+    const taskId = uuidv4();
     log(`Generated task ID: ${taskId}`);
     return taskId;
   }

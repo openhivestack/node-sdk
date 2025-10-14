@@ -173,23 +173,6 @@ export class AgentConfig {
       throw new AgentError(AgentErrorTypes.CONFIG_ERROR, errorMessage);
     }
 
-    try {
-      log('Decoding base64 keys');
-      mergedConfig.keys.publicKey = Buffer.from(
-        mergedConfig.keys.publicKey,
-        'base64'
-      ).toString('utf8');
-      mergedConfig.keys.privateKey = Buffer.from(
-        mergedConfig.keys.privateKey,
-        'base64'
-      ).toString('utf8');
-    } catch (error) {
-      const errorMessage =
-        'Failed to decode base64 keys. Please ensure publicKey and privateKey are correctly encoded.';
-      log(errorMessage, error);
-      throw new AgentError(AgentErrorTypes.CONFIG_ERROR, errorMessage);
-    }
-
     // Validate each capability
     log('Validating each capability');
     mergedConfig.capabilities.forEach((capability) => {
