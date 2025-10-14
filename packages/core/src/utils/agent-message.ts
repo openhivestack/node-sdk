@@ -575,8 +575,15 @@ export class AgentMessage {
    */
   static verifySignature(message: IAgentMessage, publicKey: string): boolean {
     log(`Verifying signature for message from '${message.from}'`);
-    const { sig, ...messageWithoutSig } = message;
-    const isValid = AgentSignature.verify(messageWithoutSig, sig, publicKey);
+    // Manual copy to avoid issues with object destructuring on class instances
+    const messageWithoutSig: { [key: string]: any } = { ...message };
+    delete messageWithoutSig.sig;
+
+    const isValid = AgentSignature.verify(
+      messageWithoutSig,
+      message.sig,
+      publicKey
+    );
     log(`Signature is ${isValid ? 'valid' : 'invalid'}`);
     return isValid;
   }
