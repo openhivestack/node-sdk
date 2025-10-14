@@ -85,6 +85,17 @@ export class AgentSignature {
       return false;
     }
   }
+  
+  /**
+   * Generate a random identifier for agent IDs
+   *
+   * @returns Random hex string
+   */
+  static generateUniqueId(): string {
+    const id = crypto.randomBytes(8).toString('hex');
+    log(`Generated unique ID: ${id}`);
+    return id;
+  }
 
   /**
    * Generate a UUID v4 for task IDs
