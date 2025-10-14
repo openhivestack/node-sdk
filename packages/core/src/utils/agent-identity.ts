@@ -285,8 +285,7 @@ export class AgentIdentity {
    */
   public verifyMessage(message: IAgentMessage, publicKey: string): boolean {
     log(`Verifying message signature from '${message.from}'`);
-    const publicKeyPem = Buffer.from(publicKey, 'base64').toString('utf-8');
-    const isValid = AgentMessage.verifySignature(message, publicKeyPem);
+    const isValid = AgentMessage.verifySignature(message, publicKey);
     log(`Signature from '${message.from}' is ${isValid ? 'valid' : 'invalid'}`);
     return isValid;
   }

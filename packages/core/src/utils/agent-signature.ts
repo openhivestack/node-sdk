@@ -68,10 +68,11 @@ export class AgentSignature {
     log('Verifying message signature');
     try {
       const messageString = stringify(message);
-      const publicKeyObject = crypto.createPublicKey(publicKey);
+      const publicKeyPem = Buffer.from(publicKey, 'base64').toString('utf-8');
+      const publicKeyObject = crypto.createPublicKey(publicKeyPem);
       const isValid = crypto.verify(
         null,
-        new Uint8Array(Buffer.from(messageString as unknown as string).buffer),
+        new Uint8Array(Buffer.from(messageString as string).buffer),
         publicKeyObject,
         new Uint8Array(Buffer.from(signature, 'base64').buffer)
       );
@@ -85,7 +86,7 @@ export class AgentSignature {
       return false;
     }
   }
-  
+
   /**
    * Generate a random identifier for agent IDs
    *
