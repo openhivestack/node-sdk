@@ -2,6 +2,7 @@ import * as crypto from 'crypto';
 import { AgentError } from './agent-error';
 import { AgentErrorTypes } from '../types';
 import debug from 'debug';
+import stringify from 'json-stable-stringify';
 
 const log = debug('openhive:agent-signature');
 
@@ -44,10 +45,10 @@ export class AgentSignature {
   static sign(message: any, privateKey: string): string {
     log('Signing message');
     try {
-      const messageString = JSON.stringify(message);
+      const messageString = stringify(message);
       const signature = crypto.sign(
         null,
-        Buffer.from(messageString),
+        Buffer.from(messageString as string),
         privateKey
       );
       const signatureB64 = signature.toString('base64');
@@ -73,10 +74,10 @@ export class AgentSignature {
   static verify(message: any, signature: string, publicKey: string): boolean {
     log('Verifying message signature');
     try {
-      const messageString = JSON.stringify(message);
+      const messageString = stringify(message);
       const isValid = crypto.verify(
         null,
-        Buffer.from(messageString),
+        Buffer.from(messageString as string),
         publicKey,
         Buffer.from(signature, 'base64')
       );
