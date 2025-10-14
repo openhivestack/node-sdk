@@ -16,9 +16,8 @@ const log = debug('openhive:agent-identity');
  */
 export class AgentIdentity {
   private config: AgentConfig;
-  private privateKeyPem: string;
-  private publicKeyPem: string;
-  private publicKeyPemB64: string;
+  private privateKey: string;
+  private publicKey: string;
 
   /**
    * Create a new H.I.V.E. agent identity
@@ -27,13 +26,9 @@ export class AgentIdentity {
    */
   constructor(config: AgentConfig) {
     this.config = config;
-    this.publicKeyPemB64 = this.config.keys().publicKey;
-    this.privateKeyPem = Buffer.from(
+    this.publicKey = this.config.keys().publicKey;
+    this.privateKey = Buffer.from(
       this.config.keys().privateKey,
-      'base64'
-    ).toString('utf-8');
-    this.publicKeyPem = Buffer.from(
-      this.config.keys().publicKey,
       'base64'
     ).toString('utf-8');
     log(`AgentIdentity initialized for agent: ${this.id()}`);
@@ -89,14 +84,14 @@ export class AgentIdentity {
    * Get agent public key
    */
   public getPublicKey(): string {
-    return this.publicKeyPemB64;
+    return this.publicKey;
   }
 
   /**
    * Get agent private key
    */
   public getPrivateKey(): string {
-    return this.privateKeyPem;
+    return this.privateKey;
   }
 
   /**
@@ -124,7 +119,7 @@ export class AgentIdentity {
       toAgentId,
       capability,
       params,
-      this.privateKeyPem,
+      this.privateKey,
       taskId,
       deadline
     );
@@ -153,7 +148,7 @@ export class AgentIdentity {
       toAgentId,
       taskId,
       status,
-      this.privateKeyPem,
+      this.privateKey,
       estimatedCompletion,
       reason
     );
@@ -179,7 +174,7 @@ export class AgentIdentity {
       this.id(),
       toAgentId,
       taskId,
-      this.privateKeyPem,
+      this.privateKey,
       progress,
       message
     );
@@ -204,7 +199,7 @@ export class AgentIdentity {
       toAgentId,
       taskId,
       result,
-      this.privateKeyPem
+      this.privateKey
     );
   }
 
@@ -235,7 +230,7 @@ export class AgentIdentity {
       error,
       message,
       retry,
-      this.privateKeyPem,
+      this.privateKey,
       code
     );
   }
@@ -255,7 +250,7 @@ export class AgentIdentity {
     return AgentMessage.createCapabilityQuery(
       this.id(),
       toAgentId,
-      this.privateKeyPem,
+      this.privateKey,
       capabilities
     );
   }
@@ -276,7 +271,7 @@ export class AgentIdentity {
       this.id(),
       toAgentId,
       this.capabilities(),
-      this.privateKeyPem,
+      this.privateKey,
       endpoint
     );
   }

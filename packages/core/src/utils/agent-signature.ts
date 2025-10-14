@@ -38,10 +38,11 @@ export class AgentSignature {
     log('Signing message');
     try {
       const messageString = stringify(message);
+      const privateKeyObject = crypto.createPrivateKey(privateKey);
       const signature = crypto.sign(
         null,
-        Buffer.from(messageString),
-        privateKey
+        new Uint8Array(Buffer.from(messageString as string).buffer),
+        privateKeyObject
       );
       const signatureB64 = signature.toString('base64');
       log(`Message signed successfully. Signature: ${signatureB64}`);
@@ -67,11 +68,12 @@ export class AgentSignature {
     log('Verifying message signature');
     try {
       const messageString = stringify(message);
+      const publicKeyObject = crypto.createPublicKey(publicKey);
       const isValid = crypto.verify(
         null,
-        Buffer.from(messageString),
-        publicKey,
-        Buffer.from(signature, 'base64')
+        new Uint8Array(Buffer.from(messageString as unknown as string).buffer),
+        publicKeyObject,
+        new Uint8Array(Buffer.from(signature, 'base64').buffer)
       );
       log(`Signature verification result: ${isValid}`);
       return isValid;
