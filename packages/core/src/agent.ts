@@ -1,4 +1,5 @@
 import path from 'node:path';
+import debug from 'debug';
 import {
   IAgentConfig,
   IAgentMessage,
@@ -15,6 +16,8 @@ import { AgentConfig } from './utils/agent-config';
 import { AgentServer } from './utils/agent-server';
 import { InMemoryRegistry } from './utils/in-memory-registry';
 import got from 'got';
+
+const log = debug('openhive:agent');
 
 type CapabilityHandler = (
   params: Record<string, unknown>
@@ -38,16 +41,27 @@ export class Agent {
       new InMemoryRegistry('internal', this.config.endpoint())
     );
 
+    log('Agent initialized');
+    log(`Agent ID: ${this.agentIdentity.id()}`);
+
     if (registry) {
       this._registry.set(registry.name, registry);
       this.activeRegistry = registry;
+      log(`Using provided registry: ${registry.name}`);
     } else {
       this.activeRegistry = this._registry.get('internal') as IAgentRegistry;
+      log('Using internal in-memory registry');
     }
   }
 
   public useRegistry(name: string) {
-    this.activeRegistry = this._registry.get(name) as IAgentRegistry;
+    const registry = this._registry.get(name);
+    if (registry) {
+      this.activeRegistry = registry;
+      log(`Switched to registry: ${name}`);
+    } else {
+      log(`Registry not found: ${name}`);
+    }
     return this;
   }
 
@@ -60,14 +74,19 @@ export class Agent {
       const registryName = name || endpoint;
       const newRegistry = new RemoteRegistry(registryName, endpoint);
       this._registry.set(newRegistry.name, newRegistry);
+      log(`Added remote registry: ${newRegistry.name} at ${endpoint}`);
     } else {
       this._registry.set(registryOrEndpoint.name, registryOrEndpoint);
+      log(`Added registry: ${registryOrEndpoint.name}`);
     }
     return this;
   }
 
   public removeRegistry(name: string) {
-    this._registry.delete(name);
+    if (this._registry.has(name)) {
+      this._registry.delete(name);
+      log(`Removed registry: ${name}`);
+    }
     return this;
   }
 
@@ -88,8 +107,10 @@ export class Agent {
     senderPublicKey: string
   ): Promise<ITaskResultData | ITaskErrorData> {
     const task_id = message.data.task_id || 'unknown';
+    log(`Processing message for task ID: ${task_id}`);
 
     if (!this.agentIdentity.verifyMessage(message, senderPublicKey)) {
+      log(`Signature verification failed for task ID: ${task_id}`);
       return {
         task_id,
         error: AgentErrorTypes.INVALID_SIGNATURE,
@@ -98,7 +119,12 @@ export class Agent {
       };
     }
 
+    log(`Signature verified for task ID: ${task_id}`);
+
     if (message.type !== AgentMessageTypes.TASK_REQUEST) {
+      log(
+        `Invalid message type '${message.type}' for task ID: ${task_id}. Expected 'task_request'.`
+      );
       return {
         task_id,
         error: AgentErrorTypes.INVALID_MESSAGE_FORMAT,
@@ -110,7 +136,10 @@ export class Agent {
     const { capability, params } = message.data as ITaskRequestData;
     const handler = this.capabilityHandlers.get(capability);
 
+    log(`Handling capability '${capability}' for task ID: ${task_id}`);
+
     if (!handler) {
+      log(`No handler found for capability '${capability}'`);
       return {
         task_id,
         error: AgentErrorTypes.CAPABILITY_NOT_FOUND,
@@ -120,13 +149,18 @@ export class Agent {
     }
 
     try {
+      log(`Executing handler for capability '${capability}'`);
       const result = await handler(params);
+      log(`Capability '${capability}' executed successfully`);
       return {
         task_id,
         status: 'completed',
         result,
       };
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      log(`Error executing capability '${capability}': ${errorMessage}`, error);
       return {
         task_id,
         error: AgentErrorTypes.PROCESSING_FAILED,
@@ -141,12 +175,12 @@ export class Agent {
 
   public capability(id: string, handler: CapabilityHandler) {
     if (!this.config.hasCapability(id)) {
-      throw new AgentError(
-        AgentErrorTypes.CONFIG_ERROR,
-        `Capability '${id}' is not defined in the agent configuration.`
-      );
+      const errorMessage = `Capability '${id}' is not defined in the agent configuration.`;
+      log(errorMessage);
+      throw new AgentError(AgentErrorTypes.CONFIG_ERROR, errorMessage);
     }
 
+    log(`Registering handler for capability: ${id}`);
     this.capabilityHandlers.set(id, handler);
     return this; // For chaining
   }
@@ -154,6 +188,9 @@ export class Agent {
   public async register(
     registry: string | IAgentRegistry = this.activeRegistry
   ) {
+    const registryName =
+      typeof registry === 'string' ? registry : registry.name;
+    log(`Registering agent with registry: ${registryName}`);
     const { keys, ...info } = this.config.info();
 
     const agentInfo = {
@@ -168,18 +205,18 @@ export class Agent {
     }
 
     if (!registry) {
-      throw new AgentError(AgentErrorTypes.CONFIG_ERROR, `Registry not found.`);
+      const errorMessage = `Registry not found.`;
+      log(errorMessage);
+      throw new AgentError(AgentErrorTypes.CONFIG_ERROR, errorMessage);
     }
 
     try {
       await registry.add(agentInfo);
+      log(`Successfully registered with registry: ${registryName}`);
     } catch (error) {
-      throw new AgentError(
-        AgentErrorTypes.PROCESSING_FAILED,
-        `Failed to register with registry '${
-          typeof registry === 'string' ? registry : registry.name
-        }': ${error}`
-      );
+      const errorMessage = `Failed to register with registry '${registryName}': ${error}`;
+      log(errorMessage, error);
+      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
     }
   }
 
@@ -187,27 +224,39 @@ export class Agent {
     query: string,
     registry: string | IAgentRegistry = this.activeRegistry
   ): Promise<IAgentRegistryEntry[]> {
+    const registryName =
+      typeof registry === 'string' ? registry : registry.name;
+    log(`Searching for '${query}' in registry: ${registryName}`);
+
     if (typeof registry === 'string') {
       registry = this.getRegistry(registry);
     }
 
     if (!registry) {
-      throw new AgentError(AgentErrorTypes.CONFIG_ERROR, `Registry not found.`);
+      const errorMessage = `Registry not found.`;
+      log(errorMessage);
+      throw new AgentError(AgentErrorTypes.CONFIG_ERROR, errorMessage);
     }
 
     try {
       const results = await registry.search(query);
+      log(`Found ${results.length} results for query '${query}'`);
       return results;
     } catch (error) {
-      throw new AgentError(
-        AgentErrorTypes.AGENT_NOT_FOUND,
-        `Failed to search for agents with query "${query}" from registry '${registry.name}': ${error}`
-      );
+      const errorMessage = `Failed to search for agents with query "${query}" from registry '${registryName}': ${error}`;
+      log(errorMessage, error);
+      throw new AgentError(AgentErrorTypes.AGENT_NOT_FOUND, errorMessage);
     }
   }
 
   public async publicKey(agentId: string): Promise<string | undefined> {
+    log(`Fetching public key for agent: ${agentId}`);
     const agent = await this.activeRegistry.get(agentId);
+    if (agent) {
+      log(`Public key found for agent: ${agentId}`);
+    } else {
+      log(`Public key not found for agent: ${agentId}`);
+    }
     return agent?.keys.publicKey;
   }
 
@@ -237,21 +286,25 @@ export class Agent {
     params: Record<string, unknown>,
     taskId?: string
   ): Promise<ITaskResultData | ITaskErrorData> {
+    log(
+      `Sending task '${capability}' to agent '${toAgentId}' with task ID: ${
+        taskId || 'new'
+      }`
+    );
     const targetAgent = await this.activeRegistry.get(toAgentId);
     if (!targetAgent) {
-      throw new AgentError(
-        AgentErrorTypes.AGENT_NOT_FOUND,
-        `Agent ${toAgentId} not found in registry.`
-      );
+      const errorMessage = `Agent ${toAgentId} not found in registry.`;
+      log(errorMessage);
+      throw new AgentError(AgentErrorTypes.AGENT_NOT_FOUND, errorMessage);
     }
 
     if (!targetAgent.endpoint) {
-      throw new AgentError(
-        AgentErrorTypes.CONFIG_ERROR,
-        `Endpoint for agent ${toAgentId} not configured.`
-      );
+      const errorMessage = `Endpoint for agent ${toAgentId} not configured.`;
+      log(errorMessage);
+      throw new AgentError(AgentErrorTypes.CONFIG_ERROR, errorMessage);
     }
 
+    log(`Creating task request for capability: ${capability}`);
     const taskRequest = this.agentIdentity.createTaskRequest(
       toAgentId,
       capability,
@@ -260,27 +313,29 @@ export class Agent {
     );
 
     try {
+      log(`Sending task request to: ${targetAgent.endpoint}/tasks`);
       const response: IAgentMessage = await got
         .post(`${targetAgent.endpoint}/tasks`, {
           json: taskRequest,
         })
         .json();
 
+      log(`Received response for task`);
+
       if (
         !this.agentIdentity.verifyMessage(response, targetAgent.keys.publicKey)
       ) {
-        throw new AgentError(
-          AgentErrorTypes.INVALID_SIGNATURE,
-          'Response signature verification failed.'
-        );
+        const errorMessage = 'Response signature verification failed.';
+        log(errorMessage);
+        throw new AgentError(AgentErrorTypes.INVALID_SIGNATURE, errorMessage);
       }
 
+      log(`Response signature verified`);
       return response.data as ITaskResultData | ITaskErrorData;
     } catch (error) {
-      throw new AgentError(
-        AgentErrorTypes.PROCESSING_FAILED,
-        `Failed to send task to agent ${toAgentId}: ${error}`
-      );
+      const errorMessage = `Failed to send task to agent ${toAgentId}: ${error}`;
+      log(errorMessage, error);
+      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
     }
   }
 }

@@ -15,6 +15,7 @@
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
     "@swc/jest": "~0.2.38",
+    "@types/debug": "^4.1.12",
     "@types/express": "^5",
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
@@ -39,6 +40,7 @@
   "packageManager": "yarn@4.10.3",
   "dependencies": {
     "body-parser": "^2.2.0",
+    "debug": "^4.4.3",
     "express": "^5.1.0",
     "js-yaml": "^4.1.0"
   }

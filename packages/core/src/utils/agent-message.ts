@@ -12,6 +12,9 @@ import {
 } from '../types';
 import { AgentSignature } from './agent-signature';
 import { AgentError } from './agent-error';
+import debug from 'debug';
+
+const log = debug('openhive:agent-message');
 
 /**
  * Message class for H.I.V.E. Protocol message handling
@@ -24,67 +27,85 @@ export class AgentMessage {
    * @throws AgentError if message is invalid
    */
   static validate(message: any): void {
+    log('Validating message structure');
     // Check required fields
     if (!message) {
+      const errorMessage = 'Message is empty or undefined';
+      log(errorMessage);
       throw new AgentError(
         AgentErrorTypes.INVALID_MESSAGE_FORMAT,
-        'Message is empty or undefined'
+        errorMessage
       );
     }
 
     if (!message.from) {
+      const errorMessage = 'Missing required field: from';
+      log(errorMessage);
       throw new AgentError(
         AgentErrorTypes.INVALID_MESSAGE_FORMAT,
-        'Missing required field: from'
+        errorMessage
       );
     }
 
     if (!message.to) {
+      const errorMessage = 'Missing required field: to';
+      log(errorMessage);
       throw new AgentError(
         AgentErrorTypes.INVALID_MESSAGE_FORMAT,
-        'Missing required field: to'
+        errorMessage
       );
     }
 
     if (!message.type) {
+      const errorMessage = 'Missing required field: type';
+      log(errorMessage);
       throw new AgentError(
         AgentErrorTypes.INVALID_MESSAGE_FORMAT,
-        'Missing required field: type'
+        errorMessage
       );
     }
 
     if (!message.data) {
+      const errorMessage = 'Missing required field: data';
+      log(errorMessage);
       throw new AgentError(
         AgentErrorTypes.INVALID_MESSAGE_FORMAT,
-        'Missing required field: data'
+        errorMessage
       );
     }
 
     // Validate agent ID format
     if (!message.from.startsWith('hive:agentid:')) {
+      const errorMessage = `Invalid 'from' agent ID format: ${message.from}. Must start with 'hive:agentid:'`;
+      log(errorMessage);
       throw new AgentError(
         AgentErrorTypes.INVALID_MESSAGE_FORMAT,
-        `Invalid 'from' agent ID format: ${message.from}. Must start with 'hive:agentid:'`
+        errorMessage
       );
     }
 
     if (!message.to.startsWith('hive:agentid:')) {
+      const errorMessage = `Invalid 'to' agent ID format: ${message.to}. Must start with 'hive:agentid:'`;
+      log(errorMessage);
       throw new AgentError(
         AgentErrorTypes.INVALID_MESSAGE_FORMAT,
-        `Invalid 'to' agent ID format: ${message.to}. Must start with 'hive:agentid:'`
+        errorMessage
       );
     }
 
     // Validate message type
     const validTypes = Object.values(AgentMessageTypes);
     if (!validTypes.includes(message.type)) {
+      const errorMessage = `Invalid message type: ${message.type}`;
+      log(errorMessage);
       throw new AgentError(
         AgentErrorTypes.INVALID_MESSAGE_FORMAT,
-        `Invalid message type: ${message.type}`
+        errorMessage
       );
     }
 
     // Validate data based on message type
+    log(`Validating data for message type: ${message.type}`);
     switch (message.type) {
       case AgentMessageTypes.TASK_REQUEST:
         this.validateTaskRequest(message.data);
@@ -108,9 +129,11 @@ export class AgentMessage {
         this.validateCapabilityResponse(message.data);
         break;
       default:
+        log(`No specific validation for message type: ${message.type}`);
         // Other message types don't have specific validation
         break;
     }
+    log('Message validation successful');
   }
 
   /**
@@ -523,6 +546,9 @@ export class AgentMessage {
     data: any,
     privateKey: string
   ): IAgentMessage {
+    log(
+      `Creating message of type '${type}' from '${fromAgentId}' to '${toAgentId}'`
+    );
     // Create message without signature
     const messageWithoutSig = {
       from: fromAgentId,
@@ -532,20 +558,26 @@ export class AgentMessage {
     };
 
     // Sign message
+    log('Signing message');
     const sig = AgentSignature.sign(messageWithoutSig, privateKey);
 
     // Return complete message
-    return {
+    const message = {
       ...messageWithoutSig,
       sig,
     };
+    log(`Message created with signature: ${sig}`);
+    return message;
   }
 
   /**
    * Verify a message signature
    */
   static verifySignature(message: IAgentMessage, publicKey: string): boolean {
+    log(`Verifying signature for message from '${message.from}'`);
     const { sig, ...messageWithoutSig } = message;
-    return AgentSignature.verify(messageWithoutSig, sig, publicKey);
+    const isValid = AgentSignature.verify(messageWithoutSig, sig, publicKey);
+    log(`Signature is ${isValid ? 'valid' : 'invalid'}`);
+    return isValid;
   }
 }

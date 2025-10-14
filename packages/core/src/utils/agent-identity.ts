@@ -7,6 +7,9 @@ import {
 import { AgentConfig } from './agent-config';
 import { AgentError } from './agent-error';
 import { AgentMessage } from './agent-message';
+import debug from 'debug';
+
+const log = debug('openhive:agent-identity');
 
 /**
  * AgentIdentity class for H.I.V.E. Protocol agent functionality
@@ -21,6 +24,7 @@ export class AgentIdentity {
    */
   constructor(config: AgentConfig) {
     this.config = config;
+    log(`AgentIdentity initialized for agent: ${this.id()}`);
   }
 
   /**
@@ -30,6 +34,7 @@ export class AgentIdentity {
    * @returns New AgentIdentity instance
    */
   static create(config: AgentConfig): AgentIdentity {
+    log('Creating new AgentIdentity');
     return new AgentIdentity(config);
   }
 
@@ -99,6 +104,9 @@ export class AgentIdentity {
     taskId?: string,
     deadline?: string
   ): IAgentMessage {
+    log(
+      `Creating task request for '${toAgentId}' with capability '${capability}'`
+    );
     return AgentMessage.createTaskRequest(
       this.id(),
       toAgentId,
@@ -127,6 +135,7 @@ export class AgentIdentity {
     estimatedCompletion?: string,
     reason?: string
   ): IAgentMessage {
+    log(`Creating task response for task '${taskId}' with status '${status}'`);
     return AgentMessage.createTaskResponse(
       this.id(),
       toAgentId,
@@ -153,6 +162,7 @@ export class AgentIdentity {
     progress?: number,
     message?: string
   ): IAgentMessage {
+    log(`Creating task update for task '${taskId}'`);
     return AgentMessage.createTaskUpdate(
       this.id(),
       toAgentId,
@@ -176,6 +186,7 @@ export class AgentIdentity {
     taskId: string,
     result: Record<string, any>
   ): IAgentMessage {
+    log(`Creating task result for task '${taskId}'`);
     return AgentMessage.createTaskResult(
       this.id(),
       toAgentId,
@@ -204,6 +215,7 @@ export class AgentIdentity {
     retry: boolean,
     code?: number
   ): IAgentMessage {
+    log(`Creating task error for task '${taskId}'`);
     return AgentMessage.createTaskError(
       this.id(),
       toAgentId,
@@ -227,6 +239,7 @@ export class AgentIdentity {
     toAgentId: string,
     capabilities?: string[]
   ): IAgentMessage {
+    log(`Creating capability query for agent '${toAgentId}'`);
     return AgentMessage.createCapabilityQuery(
       this.id(),
       toAgentId,
@@ -246,6 +259,7 @@ export class AgentIdentity {
     toAgentId: string,
     endpoint?: string
   ): IAgentMessage {
+    log(`Creating capability response for agent '${toAgentId}'`);
     return AgentMessage.createCapabilityResponse(
       this.id(),
       toAgentId,
@@ -263,7 +277,10 @@ export class AgentIdentity {
    * @returns Boolean indicating if signature is valid
    */
   public verifyMessage(message: IAgentMessage, publicKey: string): boolean {
-    return AgentMessage.verifySignature(message, publicKey);
+    log(`Verifying message signature from '${message.from}'`);
+    const isValid = AgentMessage.verifySignature(message, publicKey);
+    log(`Signature from '${message.from}' is ${isValid ? 'valid' : 'invalid'}`);
+    return isValid;
   }
 
   /**
@@ -274,28 +291,31 @@ export class AgentIdentity {
    * @throws HiveError if message is invalid
    */
   public processMessage(message: IAgentMessage, publicKey: string): void {
+    log(`Processing incoming message of type '${message.type}'`);
     // Validate message structure
     AgentMessage.validate(message);
 
     // Verify message is addressed to this agent
     if (message.to !== this.id()) {
+      const errorMessage = `Message not addressed to this agent. Expected: ${this.id()}, Got: ${
+        message.to
+      }`;
+      log(errorMessage);
       throw new AgentError(
         AgentErrorTypes.INVALID_MESSAGE_FORMAT,
-        `Message not addressed to this agent. Expected: ${this.id()}, Got: ${
-          message.to
-        }`
+        errorMessage
       );
     }
 
     // Verify signature
     if (!this.verifyMessage(message, publicKey)) {
-      throw new AgentError(
-        AgentErrorTypes.INVALID_SIGNATURE,
-        'Message signature verification failed'
-      );
+      const errorMessage = 'Message signature verification failed';
+      log(errorMessage);
+      throw new AgentError(AgentErrorTypes.INVALID_SIGNATURE, errorMessage);
     }
 
     // Process message based on type
+    log(`Dispatching message type '${message.type}' to handler`);
     switch (message.type) {
       case AgentMessageTypes.TASK_REQUEST:
         this.processTaskRequest(message);
@@ -315,18 +335,21 @@ export class AgentIdentity {
    */
   private processTaskRequest(message: IAgentMessage): void {
     const { capability } = message.data;
+    log(`Processing task request for capability '${capability}'`);
 
     // Check if agent has the requested capability
     if (!this.config.hasCapability(capability)) {
-      throw new AgentError(
-        AgentErrorTypes.CAPABILITY_NOT_FOUND,
-        `Capability not found: ${capability}`
-      );
+      const errorMessage = `Capability not found: ${capability}`;
+      log(errorMessage);
+      throw new AgentError(AgentErrorTypes.CAPABILITY_NOT_FOUND, errorMessage);
     }
 
     // Additional task request processing would go here
     // This would typically involve validating parameters against the capability schema
     // and dispatching the task to a handler
+    log(
+      `Capability '${capability}' found. Further processing would happen here.`
+    );
   }
 
   /**
@@ -335,6 +358,7 @@ export class AgentIdentity {
    * @param message - Capability query message
    */
   private processCapabilityQuery(message: IAgentMessage): void {
+    log('Processing capability query');
     // Handle capability query
     // This would typically involve filtering capabilities if specific ones were requested
     // and sending a capability response message

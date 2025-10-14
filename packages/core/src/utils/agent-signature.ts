@@ -1,6 +1,9 @@
 import * as crypto from 'crypto';
 import { AgentError } from './agent-error';
 import { AgentErrorTypes } from '../types';
+import debug from 'debug';
+
+const log = debug('openhive:agent-signature');
 
 /**
  * Crypto utility for H.I.V.E. Protocol
@@ -13,20 +16,21 @@ export class AgentSignature {
    * @returns Object containing public and private keys in PEM format
    */
   static generateKeyPair(): { publicKey: string; privateKey: string } {
+    log('Generating new Ed25519 key pair');
     try {
       const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519', {
         publicKeyEncoding: { type: 'spki', format: 'pem' },
         privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
       });
 
+      log('Key pair generated successfully');
       return { publicKey, privateKey };
     } catch (error) {
-      throw new AgentError(
-        AgentErrorTypes.PROCESSING_FAILED,
-        `Failed to generate key pair: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+      const errorMessage = `Failed to generate key pair: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      log(errorMessage, error);
+      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
     }
   }
 
@@ -38,6 +42,7 @@ export class AgentSignature {
    * @returns Base64 encoded signature
    */
   static sign(message: any, privateKey: string): string {
+    log('Signing message');
     try {
       const messageString = JSON.stringify(message);
       const signature = crypto.sign(
@@ -45,14 +50,15 @@ export class AgentSignature {
         Buffer.from(messageString),
         privateKey
       );
-      return signature.toString('base64');
+      const signatureB64 = signature.toString('base64');
+      log(`Message signed successfully. Signature: ${signatureB64}`);
+      return signatureB64;
     } catch (error) {
-      throw new AgentError(
-        AgentErrorTypes.PROCESSING_FAILED,
-        `Failed to sign message: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+      const errorMessage = `Failed to sign message: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      log(errorMessage, error);
+      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
     }
   }
 
@@ -65,21 +71,23 @@ export class AgentSignature {
    * @returns Boolean indicating if signature is valid
    */
   static verify(message: any, signature: string, publicKey: string): boolean {
+    log('Verifying message signature');
     try {
       const messageString = JSON.stringify(message);
-      return crypto.verify(
+      const isValid = crypto.verify(
         null,
         Buffer.from(messageString),
         publicKey,
         Buffer.from(signature, 'base64')
       );
+      log(`Signature verification result: ${isValid}`);
+      return isValid;
     } catch (error) {
-      throw new AgentError(
-        AgentErrorTypes.PROCESSING_FAILED,
-        `Failed to verify signature: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+      const errorMessage = `Failed to verify signature: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      log(errorMessage, error);
+      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
     }
   }
 
@@ -89,7 +97,9 @@ export class AgentSignature {
    * @returns Random hex string
    */
   static generateUniqueId(): string {
-    return crypto.randomBytes(8).toString('hex');
+    const id = crypto.randomBytes(8).toString('hex');
+    log(`Generated unique ID: ${id}`);
+    return id;
   }
 
   /**
@@ -98,6 +108,8 @@ export class AgentSignature {
    * @returns UUID v4 string
    */
   static generateTaskId(): string {
-    return crypto.randomUUID();
+    const taskId = crypto.randomUUID();
+    log(`Generated task ID: ${taskId}`);
+    return taskId;
   }
 }
