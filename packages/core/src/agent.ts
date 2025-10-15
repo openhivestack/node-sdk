@@ -111,7 +111,7 @@ export class Agent {
     const task_id = message.data.task_id || 'unknown';
     log(`Processing message for task ID: ${task_id}`);
 
-    if (!this.agentIdentity.verifyMessage(message, senderPublicKey)) {
+    if (!(await this.agentIdentity.verifyMessage(message, senderPublicKey))) {
       log(`Signature verification failed for task ID: ${task_id}`);
       return {
         task_id,
@@ -325,7 +325,10 @@ export class Agent {
       log(`Received response for task`);
 
       if (
-        !this.agentIdentity.verifyMessage(response, targetAgent.keys.publicKey)
+        !(await this.agentIdentity.verifyMessage(
+          response,
+          targetAgent.keys.publicKey
+        ))
       ) {
         const errorMessage = 'Response signature verification failed.';
         log(errorMessage);
