@@ -307,7 +307,7 @@ export class Agent {
     }
 
     log(`Creating task request for capability: ${capability}`);
-    const taskRequest = this.agentIdentity.createTaskRequest(
+    const taskRequest = await this.agentIdentity.createTaskRequest(
       toAgentId,
       capability,
       params,
