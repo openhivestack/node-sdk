@@ -44,4 +44,9 @@ Thumbs.db
 .github/instructions/nx.instructions.md
 
 test-output
+
+# Yarn
 .yarn
+
+# Lock files
+package-lock.json

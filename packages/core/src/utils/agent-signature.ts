@@ -4,6 +4,7 @@ import debug from 'debug';
 import stringify from 'json-stable-stringify';
 import * as nacl from 'tweetnacl';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 
 const log = debug('openhive:agent-signature');
 
@@ -96,4 +97,15 @@ export class AgentSignature {
     log(`Generated task ID: ${taskId}`);
     return taskId;
   }
+
+    /**
+   * Generate a random identifier for agent IDs
+   *
+   * @returns Random hex string
+   */
+    static generateUniqueId(): string {
+      const id = crypto.randomBytes(8).toString('hex');
+      log(`Generated unique ID: ${id}`);
+      return id;
+    }  
 }
