@@ -19,7 +19,7 @@ export class RemoteRegistry implements IAgentRegistry {
     log(`Adding agent ${agent.id} to remote registry '${this.name}'`);
     try {
       return await got
-        .post(`${this.endpoint}/registry/add`, {
+        .post(`${this.endpoint}/registry/agents/add`, {
           json: agent,
         })
         .json<IAgentRegistryEntry>();
@@ -33,7 +33,7 @@ export class RemoteRegistry implements IAgentRegistry {
   public async get(agentId: string): Promise<IAgentRegistryEntry> {
     log(`Getting agent ${agentId} from remote registry '${this.name}'`);
     try {
-      const url = new URL(`${this.endpoint}/registry/${agentId}`);
+      const url = new URL(`${this.endpoint}/registry/agents/${agentId}`);
       return await got.get(url.toString()).json<IAgentRegistryEntry>();
     } catch (error) {
       const errorMessage = `Failed to get agent ${agentId} from registry at ${this.endpoint}: ${error}`;
@@ -45,7 +45,7 @@ export class RemoteRegistry implements IAgentRegistry {
   public async search(query: string): Promise<IAgentRegistryEntry[]> {
     log(`Searching for '${query}' in remote registry '${this.name}'`);
     try {
-      const url = new URL(`${this.endpoint}/registry/search`);
+      const url = new URL(`${this.endpoint}/registry/agents/search`);
       url.searchParams.append('q', query);
       return await got.get(url.toString()).json<IAgentRegistryEntry[]>();
     } catch (error) {
@@ -58,7 +58,7 @@ export class RemoteRegistry implements IAgentRegistry {
   public async list(): Promise<IAgentRegistryEntry[]> {
     log(`Listing agents from remote registry '${this.name}'`);
     try {
-      const url = new URL(`${this.endpoint}/registry/list`);
+      const url = new URL(`${this.endpoint}/registry/agents/list`);
       return await got.get(url.toString()).json<IAgentRegistryEntry[]>();
     } catch (error) {
       const errorMessage = `Failed to list agents from registry at ${this.endpoint}: ${error}`;
@@ -70,7 +70,7 @@ export class RemoteRegistry implements IAgentRegistry {
   public async remove(agentId: string): Promise<void> {
     log(`Removing agent ${agentId} from remote registry '${this.name}'`);
     try {
-      await got.delete(`${this.endpoint}/registry/remove/${agentId}`);
+      await got.delete(`${this.endpoint}/registry/agents/${agentId}`);
     } catch (error) {
       const errorMessage = `Failed to remove agent ${agentId} from registry at ${this.endpoint}: ${error}`;
       log(errorMessage, error);
@@ -92,7 +92,7 @@ export class RemoteRegistry implements IAgentRegistry {
   public async update(agent: IAgentRegistryEntry): Promise<void> {
     log(`Updating agent ${agent.id} in remote registry '${this.name}'`);
     try {
-      await got.put(`${this.endpoint}/registry/${agent.id}`, {
+      await got.put(`${this.endpoint}/registry/agents/${agent.id}`, {
         json: agent,
       });
     } catch (error) {

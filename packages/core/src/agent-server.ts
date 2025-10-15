@@ -37,8 +37,8 @@ export class AgentServer {
       });
     });
 
-    this.app.post('/registry/add', async (req: Request, res: Response) => {
-      log('Received request for /registry/add');
+    this.app.post('/registry/agents/add', async (req: Request, res: Response) => {
+      log('Received request for /registry/agents/add');
       try {
         const agentInfo = req.body;
         const result = await this.agent.registry.add(agentInfo);
@@ -51,8 +51,8 @@ export class AgentServer {
       }
     });
 
-    this.app.get('/registry/list', async (req: Request, res: Response) => {
-      log('Received request for /registry/list');
+    this.app.get('/registry/agents/list', async (req: Request, res: Response) => {
+      log('Received request for /registry/agents/list');
       try {
         const agents = await this.agent.registry.list();
         log(`Returning ${agents.length} agents from registry`);
@@ -64,9 +64,9 @@ export class AgentServer {
       }
     });
 
-    this.app.get('/registry/search', async (req: Request, res: Response) => {
+    this.app.get('/registry/agents/search', async (req: Request, res: Response) => {
       const query = req.query.q as string;
-      log(`Received request for /registry/search with query: ${query}`);
+      log(`Received request for /registry/agents/search with query: ${query}`);
       try {
         const results = await this.agent.registry.search(query);
         log(`Found ${results.length} agents for query: ${query}`);
@@ -78,9 +78,9 @@ export class AgentServer {
       }
     });
 
-    this.app.get('/registry/:agentId', async (req: Request, res: Response) => {
+    this.app.get('/registry/agents/:agentId', async (req: Request, res: Response) => {
       const agentId = req.params.agentId;
-      log(`Received request for /registry/${agentId}`);
+      log(`Received request for /registry/agents/${agentId}`);
       try {
         const agent = await this.agent.registry.get(agentId);
         if (agent) {
@@ -101,10 +101,10 @@ export class AgentServer {
     });
 
     this.app.delete(
-      '/registry/:agentId',
+      '/registry/agents/:agentId',
       async (req: Request, res: Response) => {
         const agentId = req.params.agentId;
-        log(`Received request to delete /registry/${agentId}`);
+        log(`Received request to delete /registry/agents/${agentId}`);
         try {
           await this.agent.registry.remove(agentId);
           log(`Agent ${agentId} removed from registry`);
@@ -120,9 +120,9 @@ export class AgentServer {
       }
     );
 
-    this.app.put('/registry/:agentId', async (req: Request, res: Response) => {
+    this.app.put('/registry/agents/:agentId', async (req: Request, res: Response) => {
       const agentId = req.params.agentId;
-      log(`Received request to update /registry/${agentId}`);
+      log(`Received request to update /registry/agents/${agentId}`);
       try {
         const agentInfo = req.body;
         await this.agent.registry.update(agentInfo);
