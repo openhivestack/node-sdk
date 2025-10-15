@@ -1,13 +1,13 @@
-export {
-  AgentConfig,
-  AgentError,
-  AgentIdentity,
-  AgentSignature,
-  RemoteRegistry,
-} from './utils';
-
+export * from './agent-config';
+export * from './agent-error';
+export * from './agent-identity';
+export * from './agent-message';
+export * from './agent-server';
+export * from './agent-signature';
+export * from './query/engine';
 export * from './agent';
-export * from './utils/agent-server';
+export * from './registry/remote.registry';
+export * from './registry/in-memory.registry';
 
 export type {
   IAgentCapability,

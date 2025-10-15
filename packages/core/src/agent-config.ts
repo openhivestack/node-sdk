@@ -4,7 +4,7 @@ import * as yaml from 'js-yaml';
 import Handlebars from 'handlebars';
 import dotenv from 'dotenv';
 import debug from 'debug';
-import { IAgentConfig, IAgentCapability, AgentErrorTypes } from '../types';
+import { IAgentConfig, IAgentCapability, AgentErrorTypes } from './types';
 import { AgentError } from './agent-error';
 
 const log = debug('openhive:agent-config');

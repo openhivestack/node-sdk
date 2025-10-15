@@ -11,10 +11,12 @@ import {
   AgentMessageTypes,
   IAgentRegistryEntry,
 } from './types';
-import { AgentError, AgentIdentity, RemoteRegistry } from './utils';
-import { AgentConfig } from './utils/agent-config';
-import { AgentServer } from './utils/agent-server';
-import { InMemoryRegistry } from './utils/in-memory-registry';
+import { AgentIdentity } from './agent-identity';
+import { AgentConfig } from './agent-config';
+import { AgentServer } from './agent-server';
+import { InMemoryRegistry } from './registry/in-memory.registry';
+import { RemoteRegistry } from './registry/remote.registry';
+import { AgentError } from './agent-error';
 import got from 'got';
 
 const log = debug('openhive:agent');

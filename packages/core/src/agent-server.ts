@@ -1,7 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import bodyParser from 'body-parser';
-import { Agent } from '../agent.js';
-import { IAgentMessage } from '../types';
+import { Agent } from './agent.js';
+import { IAgentMessage } from './types';
 import debug from 'debug';
 
 const log = debug('openhive:agent-server');
@@ -159,7 +159,7 @@ export class AgentServer {
           log(
             `Task processing failed with error: ${responseData.error}. Sending error response.`
           );
-          responseMessage = identity.createTaskError(
+          responseMessage = await identity.createTaskError(
             message.from,
             responseData.task_id,
             responseData.error,
@@ -169,7 +169,7 @@ export class AgentServer {
           return res.status(500).json(responseMessage);
         } else {
           log(`Task processed successfully. Sending result.`);
-          responseMessage = identity.createTaskResult(
+          responseMessage = await identity.createTaskResult(
             message.from,
             responseData.task_id,
             responseData.result

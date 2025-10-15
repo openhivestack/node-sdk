@@ -9,7 +9,7 @@ import {
   ITaskErrorData,
   ICapabilityQueryData,
   ICapabilityResponseData,
-} from '../types';
+} from './types';
 import { AgentSignature } from './agent-signature';
 import { AgentError } from './agent-error';
 import debug from 'debug';
@@ -327,7 +327,7 @@ export class AgentMessage {
   /**
    * Create a task request message
    */
-  static createTaskRequest(
+  static async createTaskRequest(
     fromAgentId: string,
     toAgentId: string,
     capability: string,
@@ -335,7 +335,7 @@ export class AgentMessage {
     privateKey: string,
     taskId?: string,
     deadline?: string
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     const data: ITaskRequestData = {
       task_id: taskId || AgentSignature.generateTaskId(),
       capability,
@@ -358,7 +358,7 @@ export class AgentMessage {
   /**
    * Create a task response message
    */
-  static createTaskResponse(
+  static async createTaskResponse(
     fromAgentId: string,
     toAgentId: string,
     taskId: string,
@@ -366,7 +366,7 @@ export class AgentMessage {
     privateKey: string,
     estimatedCompletion?: string,
     reason?: string
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     const data: ITaskResponseData = {
       task_id: taskId,
       status,
@@ -392,14 +392,14 @@ export class AgentMessage {
   /**
    * Create a task update message
    */
-  static createTaskUpdate(
+  static async createTaskUpdate(
     fromAgentId: string,
     toAgentId: string,
     taskId: string,
     privateKey: string,
     progress?: number,
     message?: string
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     const data: ITaskUpdateData = {
       task_id: taskId,
       status: 'in_progress',
@@ -425,13 +425,13 @@ export class AgentMessage {
   /**
    * Create a task result message
    */
-  static createTaskResult(
+  static async createTaskResult(
     fromAgentId: string,
     toAgentId: string,
     taskId: string,
     result: Record<string, any>,
     privateKey: string
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     const data: ITaskResultData = {
       task_id: taskId,
       status: 'completed',
@@ -450,7 +450,7 @@ export class AgentMessage {
   /**
    * Create a task error message
    */
-  static createTaskError(
+  static async createTaskError(
     fromAgentId: string,
     toAgentId: string,
     taskId: string,
@@ -459,7 +459,7 @@ export class AgentMessage {
     retry: boolean,
     privateKey: string,
     code?: number
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     const data: ITaskErrorData = {
       task_id: taskId,
       error,
@@ -483,12 +483,12 @@ export class AgentMessage {
   /**
    * Create a capability query message
    */
-  static createCapabilityQuery(
+  static async createCapabilityQuery(
     fromAgentId: string,
     toAgentId: string,
     privateKey: string,
     capabilities?: string[]
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     const data: ICapabilityQueryData = {};
 
     if (capabilities) {
@@ -507,7 +507,7 @@ export class AgentMessage {
   /**
    * Create a capability response message
    */
-  static createCapabilityResponse(
+  static async createCapabilityResponse(
     fromAgentId: string,
     toAgentId: string,
     capabilities: Array<{
@@ -518,7 +518,7 @@ export class AgentMessage {
     }>,
     privateKey: string,
     endpoint?: string
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     const data: ICapabilityResponseData = {
       capabilities,
     };
@@ -539,13 +539,13 @@ export class AgentMessage {
   /**
    * Create a generic message
    */
-  private static createMessage(
+  private static async createMessage(
     fromAgentId: string,
     toAgentId: string,
     type: AgentMessageTypes,
     data: any,
     privateKey: string
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     log(
       `Creating message of type '${type}' from '${fromAgentId}' to '${toAgentId}'`
     );
@@ -559,7 +559,7 @@ export class AgentMessage {
 
     // Sign message
     log('Signing message');
-    const sig = AgentSignature.sign(messageWithoutSig, privateKey);
+    const sig = await AgentSignature.sign(messageWithoutSig, privateKey);
 
     // Return complete message
     const message = {
@@ -573,13 +573,16 @@ export class AgentMessage {
   /**
    * Verify a message signature
    */
-  static verifySignature(message: IAgentMessage, publicKey: string): boolean {
+  static async verifySignature(
+    message: IAgentMessage,
+    publicKey: string
+  ): Promise<boolean> {
     log(`Verifying signature for message from '${message.from}'`);
     // Manual copy to avoid issues with object destructuring on class instances
     const messageWithoutSig: { [key: string]: any } = { ...message };
     delete messageWithoutSig.sig;
 
-    const isValid = AgentSignature.verify(
+    const isValid = await AgentSignature.verify(
       messageWithoutSig,
       message.sig,
       publicKey

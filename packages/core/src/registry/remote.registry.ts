@@ -1,5 +1,5 @@
 import got from 'got';
-import { AgentError } from './agent-error';
+import { AgentError } from '../agent-error';
 import { IAgentRegistry, IAgentRegistryEntry, AgentErrorTypes } from '../types';
 import debug from 'debug';
 

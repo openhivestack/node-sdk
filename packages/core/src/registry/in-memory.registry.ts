@@ -1,6 +1,6 @@
 import { IAgentRegistry, AgentErrorTypes, IAgentRegistryEntry } from '../types';
-import { QueryParser } from './query-engine';
-import { AgentError } from './agent-error';
+import { QueryParser } from '../query/engine';
+import { AgentError } from '../agent-error';
 import debug from 'debug';
 
 const log = debug('openhive:in-memory-registry');

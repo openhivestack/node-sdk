@@ -3,7 +3,7 @@ import {
   IAgentCapability,
   IAgentMessage,
   AgentMessageTypes,
-} from '../types';
+} from './types';
 import { AgentConfig } from './agent-config';
 import { AgentError } from './agent-error';
 import { AgentMessage } from './agent-message';
@@ -97,13 +97,13 @@ export class AgentIdentity {
    * @param deadline - Optional deadline for task completion
    * @returns Signed task request message
    */
-  public createTaskRequest(
+  public async createTaskRequest(
     toAgentId: string,
     capability: string,
     params: Record<string, any>,
     taskId?: string,
     deadline?: string
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     log(
       `Creating task request for '${toAgentId}' with capability '${capability}'`
     );
@@ -128,13 +128,13 @@ export class AgentIdentity {
    * @param reason - Optional reason for rejection
    * @returns Signed task response message
    */
-  public createTaskResponse(
+  public async createTaskResponse(
     toAgentId: string,
     taskId: string,
     status: 'accepted' | 'rejected',
     estimatedCompletion?: string,
     reason?: string
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     log(`Creating task response for task '${taskId}' with status '${status}'`);
     return AgentMessage.createTaskResponse(
       this.id(),
@@ -156,12 +156,12 @@ export class AgentIdentity {
    * @param message - Optional status message
    * @returns Signed task update message
    */
-  public createTaskUpdate(
+  public async createTaskUpdate(
     toAgentId: string,
     taskId: string,
     progress?: number,
     message?: string
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     log(`Creating task update for task '${taskId}'`);
     return AgentMessage.createTaskUpdate(
       this.id(),
@@ -181,11 +181,11 @@ export class AgentIdentity {
    * @param result - Task result data
    * @returns Signed task result message
    */
-  public createTaskResult(
+  public async createTaskResult(
     toAgentId: string,
     taskId: string,
     result: Record<string, any>
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     log(`Creating task result for task '${taskId}'`);
     return AgentMessage.createTaskResult(
       this.id(),
@@ -207,14 +207,14 @@ export class AgentIdentity {
    * @param code - Optional HTTP status code
    * @returns Signed task error message
    */
-  public createTaskError(
+  public async createTaskError(
     toAgentId: string,
     taskId: string,
     error: string,
     message: string,
     retry: boolean,
     code?: number
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     log(`Creating task error for task '${taskId}'`);
     return AgentMessage.createTaskError(
       this.id(),
@@ -235,10 +235,10 @@ export class AgentIdentity {
    * @param capabilities - Optional specific capabilities to query
    * @returns Signed capability query message
    */
-  public createCapabilityQuery(
+  public async createCapabilityQuery(
     toAgentId: string,
     capabilities?: string[]
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     log(`Creating capability query for agent '${toAgentId}'`);
     return AgentMessage.createCapabilityQuery(
       this.id(),
@@ -255,10 +255,10 @@ export class AgentIdentity {
    * @param endpoint - Optional agent endpoint URL
    * @returns Signed capability response message
    */
-  public createCapabilityResponse(
+  public async createCapabilityResponse(
     toAgentId: string,
     endpoint?: string
-  ): IAgentMessage {
+  ): Promise<IAgentMessage> {
     log(`Creating capability response for agent '${toAgentId}'`);
     return AgentMessage.createCapabilityResponse(
       this.id(),
@@ -276,9 +276,12 @@ export class AgentIdentity {
    * @param publicKey - Public key to use for verification
    * @returns Boolean indicating if signature is valid
    */
-  public verifyMessage(message: IAgentMessage, publicKey: string): boolean {
+  public async verifyMessage(
+    message: IAgentMessage,
+    publicKey: string
+  ): Promise<boolean> {
     log(`Verifying message signature from '${message.from}'`);
-    const isValid = AgentMessage.verifySignature(message, publicKey);
+    const isValid = await AgentMessage.verifySignature(message, publicKey);
     log(`Signature from '${message.from}' is ${isValid ? 'valid' : 'invalid'}`);
     return isValid;
   }
@@ -290,7 +293,10 @@ export class AgentIdentity {
    * @param publicKey - Sender's public key
    * @throws HiveError if message is invalid
    */
-  public processMessage(message: IAgentMessage, publicKey: string): void {
+  public async processMessage(
+    message: IAgentMessage,
+    publicKey: string
+  ): Promise<void> {
     log(`Processing incoming message of type '${message.type}'`);
     // Validate message structure
     AgentMessage.validate(message);
@@ -308,7 +314,7 @@ export class AgentIdentity {
     }
 
     // Verify signature
-    if (!this.verifyMessage(message, publicKey)) {
+    if (!(await this.verifyMessage(message, publicKey))) {
       const errorMessage = 'Message signature verification failed';
       log(errorMessage);
       throw new AgentError(AgentErrorTypes.INVALID_SIGNATURE, errorMessage);

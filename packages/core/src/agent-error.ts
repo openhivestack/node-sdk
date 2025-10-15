@@ -1,4 +1,4 @@
-import { AgentErrorTypes } from "../types";
+import { AgentErrorTypes } from "./types";
 
 /**
  * Error class that follows H.I.V.E. Protocol error format
