@@ -41,8 +41,8 @@ export class AgentSignature {
       const messageString = stringify(message);
       const privateKeyBytes = Buffer.from(privateKey, 'base64');
       const signature = nacl.sign.detached(
-        Buffer.from(messageString),
-        privateKeyBytes
+        new Uint8Array(Buffer.from(messageString as string).buffer),
+        new Uint8Array(privateKeyBytes.buffer)
       );
       const signatureB64 = Buffer.from(signature).toString('base64');
       log(`Message signed successfully. Signature: ${signatureB64}`);
@@ -71,9 +71,9 @@ export class AgentSignature {
       const signatureBytes = Buffer.from(signature, 'base64');
       const publicKeyBytes = Buffer.from(publicKey, 'base64');
       const isValid = nacl.sign.detached.verify(
-        Buffer.from(messageString),
-        signatureBytes,
-        publicKeyBytes
+        new Uint8Array(Buffer.from(messageString as string).buffer),
+        new Uint8Array(signatureBytes.buffer),
+        new Uint8Array(publicKeyBytes.buffer)
       );
       log(`Signature verification result: ${isValid}`);
       return isValid;
