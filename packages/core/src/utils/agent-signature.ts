@@ -2,49 +2,49 @@ import { AgentError } from './agent-error';
 import { AgentErrorTypes } from '../types';
 import debug from 'debug';
 import stringify from 'json-stable-stringify';
-import * as crypto from 'crypto';
+import * as nacl from 'tweetnacl';
 import { v4 as uuidv4 } from 'uuid';
 
 const log = debug('openhive:agent-signature');
 
 /**
  * Crypto utility for H.I.V.E. Protocol
- * Provides methods for Ed25519 key generation, signing, and verification using PEM
+ * Provides methods for Ed25519 key generation, signing, and verification
  */
 export class AgentSignature {
   /**
    * Generate a new Ed25519 key pair
    *
-   * @returns Object containing public and private keys in PEM format
+   * @returns Object containing public and private keys as Base64 strings
    */
   static generateKeyPair(): { publicKey: string; privateKey: string } {
     log('Generating new Ed25519 key pair');
-    const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519', {
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-    });
+    const keyPair = nacl.sign.keyPair();
+
+    const publicKey = Buffer.from(keyPair.publicKey).toString('base64');
+    const privateKey = Buffer.from(keyPair.secretKey).toString('base64');
+
     log('Key pair generated successfully');
     return { publicKey, privateKey };
   }
 
   /**
-   * Sign a message using Ed25519 private key in PEM format
+   * Sign a message using Ed25519 private key
    *
    * @param message - Object to sign
-   * @param privateKey - Ed25519 private key in PEM format
+   * @param privateKey - Ed25519 private key as a Base64 string
    * @returns Base64 encoded signature
    */
   static sign(message: any, privateKey: string): string {
     log('Signing message');
     try {
       const messageString = stringify(message);
-      const privateKeyObject = crypto.createPrivateKey(privateKey);
-      const signature = crypto.sign(
-        null,
-        new Uint8Array(Buffer.from(messageString as string).buffer),
-        privateKeyObject
+      const privateKeyBytes = Buffer.from(privateKey, 'base64');
+      const signature = nacl.sign.detached(
+        Buffer.from(messageString),
+        privateKeyBytes
       );
-      const signatureB64 = signature.toString('base64');
+      const signatureB64 = Buffer.from(signature).toString('base64');
       log(`Message signed successfully. Signature: ${signatureB64}`);
       return signatureB64;
     } catch (error) {
@@ -57,24 +57,23 @@ export class AgentSignature {
   }
 
   /**
-   * Verify a message signature using Ed25519 public key in PEM format
+   * Verify a message signature using Ed25519 public key
    *
    * @param message - Original message object without signature
    * @param signature - Base64 encoded signature
-   * @param publicKey - Ed25519 public key in PEM format
+   * @param publicKey - Ed25519 public key as a Base64 string
    * @returns Boolean indicating if signature is valid
    */
   static verify(message: any, signature: string, publicKey: string): boolean {
     log('Verifying message signature');
     try {
       const messageString = stringify(message);
-      const publicKeyPem = Buffer.from(publicKey, 'base64').toString('utf-8');
-      const publicKeyObject = crypto.createPublicKey(publicKeyPem);
-      const isValid = crypto.verify(
-        null,
-        new Uint8Array(Buffer.from(messageString as string).buffer),
-        publicKeyObject,
-        new Uint8Array(Buffer.from(signature, 'base64').buffer)
+      const signatureBytes = Buffer.from(signature, 'base64');
+      const publicKeyBytes = Buffer.from(publicKey, 'base64');
+      const isValid = nacl.sign.detached.verify(
+        Buffer.from(messageString),
+        signatureBytes,
+        publicKeyBytes
       );
       log(`Signature verification result: ${isValid}`);
       return isValid;
@@ -85,17 +84,6 @@ export class AgentSignature {
       log(errorMessage, error);
       return false;
     }
-  }
-
-  /**
-   * Generate a random identifier for agent IDs
-   *
-   * @returns Random hex string
-   */
-  static generateUniqueId(): string {
-    const id = crypto.randomBytes(8).toString('hex');
-    log(`Generated unique ID: ${id}`);
-    return id;
   }
 
   /**
