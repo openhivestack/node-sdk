@@ -8,11 +8,22 @@ const log = debug('openhive:remote-registry');
 export class RemoteRegistry implements IAgentRegistry {
   public name: string;
   public endpoint: string;
+  private token?: string;
 
-  constructor(name: string, endpoint: string) {
+  constructor(name: string, endpoint: string, token?: string) {
     this.name = name;
     this.endpoint = endpoint;
+    this.token = token;
     log(`Remote registry '${name}' initialized for endpoint: ${endpoint}`);
+  }
+
+  private getHeaders(): Record<string, string> {
+    if (this.token) {
+      return {
+        Authorization: `Bearer ${this.token}`,
+      };
+    }
+    return {};
   }
 
   public async add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry> {
@@ -21,6 +32,7 @@ export class RemoteRegistry implements IAgentRegistry {
       return await got
         .post(`${this.endpoint}/registry/agents/add`, {
           json: agent,
+          headers: this.getHeaders(),
         })
         .json<IAgentRegistryEntry>();
     } catch (error) {
@@ -34,7 +46,11 @@ export class RemoteRegistry implements IAgentRegistry {
     log(`Getting agent ${agentId} from remote registry '${this.name}'`);
     try {
       const url = new URL(`${this.endpoint}/registry/agents/${agentId}`);
-      return await got.get(url.toString()).json<IAgentRegistryEntry>();
+      return await got
+        .get(url.toString(), {
+          headers: this.getHeaders(),
+        })
+        .json<IAgentRegistryEntry>();
     } catch (error) {
       const errorMessage = `Failed to get agent ${agentId} from registry at ${this.endpoint}: ${error}`;
       log(errorMessage, error);
@@ -47,7 +63,9 @@ export class RemoteRegistry implements IAgentRegistry {
     try {
       const url = new URL(`${this.endpoint}/registry/agents/search`);
       url.searchParams.append('q', query);
-      return await got.get(url.toString()).json<IAgentRegistryEntry[]>();
+      return await got
+        .get(url.toString(), { headers: this.getHeaders() })
+        .json<IAgentRegistryEntry[]>();
     } catch (error) {
       const errorMessage = `Failed to search for agents with query "${query}" from registry at ${this.endpoint}: ${error}`;
       log(errorMessage, error);
@@ -59,7 +77,9 @@ export class RemoteRegistry implements IAgentRegistry {
     log(`Listing agents from remote registry '${this.name}'`);
     try {
       const url = new URL(`${this.endpoint}/registry/agents/list`);
-      return await got.get(url.toString()).json<IAgentRegistryEntry[]>();
+      return await got
+        .get(url.toString(), { headers: this.getHeaders() })
+        .json<IAgentRegistryEntry[]>();
     } catch (error) {
       const errorMessage = `Failed to list agents from registry at ${this.endpoint}: ${error}`;
       log(errorMessage, error);
@@ -70,7 +90,9 @@ export class RemoteRegistry implements IAgentRegistry {
   public async remove(agentId: string): Promise<void> {
     log(`Removing agent ${agentId} from remote registry '${this.name}'`);
     try {
-      await got.delete(`${this.endpoint}/registry/agents/${agentId}`);
+      await got.delete(`${this.endpoint}/registry/agents/${agentId}`, {
+        headers: this.getHeaders(),
+      });
     } catch (error) {
       const errorMessage = `Failed to remove agent ${agentId} from registry at ${this.endpoint}: ${error}`;
       log(errorMessage, error);
@@ -94,6 +116,7 @@ export class RemoteRegistry implements IAgentRegistry {
     try {
       await got.put(`${this.endpoint}/registry/agents/${agent.id}`, {
         json: agent,
+        headers: this.getHeaders(),
       });
     } catch (error) {
       const errorMessage = `Failed to update agent ${agent.id} in registry at ${this.endpoint}: ${error}`;
