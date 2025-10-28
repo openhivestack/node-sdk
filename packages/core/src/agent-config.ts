@@ -23,6 +23,7 @@ export class AgentConfig {
     version: '',
     host: 'localhost',
     port: 11100,
+    private: true,
     keys: {
       publicKey: '',
       privateKey: '',
