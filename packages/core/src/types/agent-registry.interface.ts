@@ -5,12 +5,12 @@ export type IAgentRegistryEntry = Omit<IAgentConfig, 'keys'> & { keys: { publicK
 export interface IAgentRegistry {
   name: string;
   endpoint: string;
-  add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry>;
-  get(agentId: string): Promise<IAgentRegistryEntry>;
-  search(query: string): Promise<IAgentRegistryEntry[]>;
-  list(): Promise<IAgentRegistryEntry[]>;
-  remove(agentId: string): Promise<void>;
-  clear(): Promise<void>;
-  close(): Promise<void>;
-  update(agent: IAgentRegistryEntry): Promise<void>;
+  add(agent: IAgentRegistryEntry, ...args: any[]): Promise<IAgentRegistryEntry>;
+  get(agentId: string, ...args: any[]): Promise<IAgentRegistryEntry>;
+  search(query: string, ...args: any[]): Promise<IAgentRegistryEntry[]>;
+  list(...args: any[]): Promise<IAgentRegistryEntry[]>;
+  remove(agentId: string, ...args: any[]): Promise<void>;
+  clear(...args: any[]): Promise<void>;
+  close(...args: any[]): Promise<void>;
+  update(agent: IAgentRegistryEntry, ...args: any[]): Promise<void>;
 }
