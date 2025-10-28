@@ -1,6 +1,6 @@
 {
   "name": "@open-hive/core",
-  "version": "0.8.18",
+  "version": "0.8.19",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
