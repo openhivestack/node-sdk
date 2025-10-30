@@ -21,6 +21,7 @@ export class AgentConfig {
     name: '',
     description: '',
     version: '',
+    runtime: '',
     host: 'localhost',
     port: 11100,
     private: true,

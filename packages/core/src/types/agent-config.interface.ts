@@ -11,6 +11,7 @@ export interface IAgentConfig {
   endpoint: string;
   host: string;
   port: number;
+  runtime: string;
   private: boolean;
   keys: {
     publicKey: string;
