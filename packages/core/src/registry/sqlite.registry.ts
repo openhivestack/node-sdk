@@ -43,7 +43,7 @@ export class SqliteRegistry implements IAgentRegistry {
   public async add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry> {
     log(`Adding agent ${agent.id} to registry '${this.name}'`);
     const stmt = this.db.prepare(
-      'INSERT INTO agents (id, name, endpoint, capabilities, description, version, host, port, runtime, private, logLevel, env, publicKey) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT OR REPLACE INTO agents (id, name, endpoint, capabilities, description, version, host, port, runtime, private, logLevel, env, publicKey) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     stmt.run(
       agent.id,
