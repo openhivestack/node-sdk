@@ -8,6 +8,7 @@ export * from './query/engine';
 export * from './agent';
 export * from './registry/remote.registry';
 export * from './registry/in-memory.registry';
+export * from './registry/sqlite.registry';
 
 export type {
   IAgentCapability,

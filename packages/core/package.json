@@ -34,6 +34,7 @@
     "access": "public"
   },
   "dependencies": {
+    "better-sqlite3": "^11.1.2",
     "body-parser": "^1.20.2",
     "debug": "^4.3.4",
     "dotenv": "^16.3.1",
@@ -48,6 +49,7 @@
   "devDependencies": {
     "@swc-node/register": "~1.8.0",
     "@swc/jest": "0.2.20",
+    "@types/better-sqlite3": "^7.6.11",
     "@types/body-parser": "^1.19.5",
     "@types/debug": "^4.1.12",
     "@types/dotenv": "^6.1.1",
