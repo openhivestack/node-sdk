@@ -3,15 +3,18 @@ import { IAgentRegistryAdapter, IAgentRegistryEntry } from '../types';
 import debug from 'debug';
 import * as fs from 'fs';
 import * as path from 'path';
+import { QueryParser } from '../query/engine';
 
 const log = debug('openhive:sqlite-registry');
 
 export class SqliteRegistry implements IAgentRegistryAdapter {
   public name: string;
   private db: Database.Database;
+  private parser: QueryParser;
 
   constructor(dbPath: string) {
     this.name = 'sqlite';
+    this.parser = new QueryParser();
 
     // Ensure the directory exists
     const dir = path.dirname(dbPath);
@@ -112,27 +115,54 @@ export class SqliteRegistry implements IAgentRegistryAdapter {
 
   public async search(query: string): Promise<IAgentRegistryEntry[]> {
     log(`Searching for '${query}' in SQLite registry`);
-    const agents = await this.list();
+    let agents = await this.list();
 
     if (!query || query.trim() === '') {
       return agents;
     }
 
-    const lowerCaseQuery = query.toLowerCase();
+    const parsedQuery = QueryParser.parse(query);
 
-    return agents.filter((agent) => {
-      const nameMatch = agent.name.toLowerCase().includes(lowerCaseQuery);
-      const descriptionMatch = agent.description
-        ?.toLowerCase()
-        .includes(lowerCaseQuery);
-      const skillMatch = agent.skills.some(
-        (s) =>
-          s.id.toLowerCase().includes(lowerCaseQuery) ||
-          s.name.toLowerCase().includes(lowerCaseQuery) ||
-          s.description?.toLowerCase().includes(lowerCaseQuery)
-      );
-      return nameMatch || descriptionMatch || skillMatch;
-    });
+    if (
+      parsedQuery.fieldFilters.length === 0 &&
+      parsedQuery.generalFilters.length === 0
+    ) {
+      return agents;
+    }
+
+    // Apply field filters
+    for (const filter of parsedQuery.fieldFilters) {
+      agents = agents.filter((agent) => {
+        if (filter.operator === 'has_skill') {
+          return agent.skills.some(
+            (s) =>
+              s.id.toLowerCase() === filter.value.toLowerCase() ||
+              s.name.toLowerCase() === filter.value.toLowerCase()
+          );
+        }
+        // Basic property check for other fields
+        const agentValue = (agent as any)[filter.field];
+        if (typeof agentValue === 'string') {
+          return agentValue.toLowerCase().includes(filter.value.toLowerCase());
+        }
+        return false;
+      });
+    }
+
+    // Apply general text search filters
+    for (const filter of parsedQuery.generalFilters) {
+      agents = agents.filter((agent) => {
+        return filter.fields.some((field) => {
+          const agentValue = (agent as any)[field];
+          if (typeof agentValue === 'string') {
+            return agentValue.toLowerCase().includes(filter.term.toLowerCase());
+          }
+          return false;
+        });
+      });
+    }
+
+    return agents;
   }
 
   public async clear(): Promise<void> {
