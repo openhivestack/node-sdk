@@ -1,37 +1,64 @@
-# Openhive (node-sdk)
+# OpenHive SDK for Node.js
 
-This repository contains the official TypeScript/JavaScript SDKs for the **[H.I.V.E. Protocol](https://github.com/openhivestack/protocol)**. It provides a set of tools and packages to help developers build and integrate AI agents with the H.I.V.E. ecosystem.
+This repository contains the official TypeScript/JavaScript SDK for the **[OpenHive Platform](https://openhive.sh)**. It provides a lightweight, powerful toolkit for developers to interact with the OpenHive agent registry.
 
-For details on the protocol check out [H.I.V.E Procotol Specification](https://openhive.sh).
+This SDK is designed to complement any A2A (Agent-to-Agent) compliant agent. While you can use any A2A SDK (like `@a2a-js/sdk`) to build your agent's core logic, the OpenHive SDK provides the necessary tools for agent discovery and management within the OpenHive ecosystem.
 
-## ✨ Packages
+## ✨ Core Features
 
-This workspace is a monorepo managed by [Nx](https://nx.dev). It contains the following packages:
-
-| Package                                  | Description                                                              |
-| ---------------------------------------- | ------------------------------------------------------------------------ |
-| [`@open-hive/core`](/packages/core/)     | Core types, interfaces, and error definitions for the H.I.V.E. protocol. |
+- **Agent Registry**: A robust `AgentRegistry` class for discovering and managing A2A-compliant agents.
+- **Adapter Pattern**: Easily switch between different storage backends for your registry:
+    - `InMemoryRegistry`: Perfect for local development and testing.
+    - `RemoteRegistry`: Connect to a shared OpenHive registry endpoint.
+    - `SqliteRegistry`: A simple, file-based persistent registry.
+- **Extensible**: A built-in plugin system allows for easy extension of the registry's functionality.
+- **Powerful Query Engine**: A flexible query parser to find agents based on their name, description, or skills.
 
 ## 🚀 Getting Started
 
-1. **Install dependencies:**
+1. **Installation:**
 
    ```sh
-   yarn install
+   npm install @open-hive/sdk
    ```
 
-2. **Build a package:**
+2. **Basic Usage (In-Memory Registry):**
 
-   ```sh
-   npx nx build <package-name>
-   # Example: npx nx build core
+   ```typescript
+   import { AgentRegistry, InMemoryRegistry } from '@open-hive/sdk';
+   import { AgentCard } from '@a2a-js/sdk'; // Or use the native AgentCard type from this SDK
+
+   // 1. Initialize the registry with an adapter
+   const registry = new AgentRegistry(new InMemoryRegistry());
+
+   // 2. Define an agent
+   const myAgent: AgentCard = {
+     name: 'MyAwesomeAgent',
+     protocolVersion: '0.3.0',
+     version: '1.0.0',
+     url: 'http://localhost:8080',
+     skills: [{ id: 'chat', name: 'Chat' }],
+   };
+
+   // 3. Add the agent to the registry
+   await registry.add(myAgent);
+
+   // 4. Search for agents
+   const results = await registry.search('chat');
+   console.log(results);
    ```
 
-3. **Run tests:**
-   ```sh
-   npx nx test <package-name>
-   # Example: npx nx test core
-   ```
+## 🔎 Advanced Search
+
+The query engine allows you to find agents with specific skills or attributes.
+
+```typescript
+// Find agents with the 'chat' skill
+const chatAgents = await registry.search('skill:chat');
+
+// Find agents with "My" in their name or description
+const myAgents = await registry.search('My');
+```
 
 ## 🤝 Contributing
 
@@ -39,18 +66,4 @@ Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTIN
 
 ## ⚖️ Licensing
 
-This project is made available under a Dual License model.
-
-### 1. Open Source License (AGPLv3)
-
-The code in this repository is primarily licensed under the **GNU Affero General Public License v3.0 (AGPLv3)**.
-
-The AGPLv3 is a strong copyleft license. This means you are free to use, modify, and distribute this software, but if you run a modified version of the software as a public network service (Software as a Service, or SaaS), you must offer the source code of your modified version to your users.
-
-**See the [LICENSE.md](LICENSE.md) file for full details.**
-
-### 2. Commercial License (Proprietary)
-
-If you are an organization that needs to use this software in a proprietary, closed-source product, or if you cannot comply with the AGPLv3's copyleft requirements, you must purchase a **Commercial License**.
-
-For licensing inquiries, please contact us at: **[commercial@openhive.sh]**
+This project is licensed under the Apache 2.0 License. See the [LICENSE.md](LICENSE.md) file for full details.
