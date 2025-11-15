@@ -10,11 +10,9 @@ const log = debug('openhive:sqlite-registry');
 export class SqliteRegistry implements IAgentRegistryAdapter {
   public name: string;
   private db: Database.Database;
-  private parser: QueryParser;
 
   constructor(dbPath: string) {
     this.name = 'sqlite';
-    this.parser = new QueryParser();
 
     // Ensure the directory exists
     const dir = path.dirname(dbPath);
