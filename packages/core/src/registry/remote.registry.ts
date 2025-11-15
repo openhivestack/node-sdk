@@ -1,103 +1,89 @@
 import got from 'got';
-import { AgentError } from '../agent-error';
-import { IAgentRegistry, IAgentRegistryEntry, AgentErrorTypes } from '../types';
+import { IAgentRegistryAdapter, IAgentRegistryEntry } from '../types';
 import debug from 'debug';
 
 const log = debug('openhive:remote-registry');
 
-export class RemoteRegistry implements IAgentRegistry {
+export class RemoteRegistry implements IAgentRegistryAdapter {
   public name: string;
   public endpoint: string;
   private token?: string;
 
-  constructor(name: string, endpoint: string, token?: string) {
-    this.name = name;
+  constructor(endpoint: string, token?: string) {
+    this.name = 'remote';
     this.endpoint = endpoint;
     this.token = token;
-    log(`Remote registry '${name}' initialized for endpoint: ${endpoint}`);
+    log(`Remote registry adapter initialized for endpoint: ${endpoint}`);
   }
 
   private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
     if (this.token) {
-      return {
-        Authorization: `Bearer ${this.token}`,
-      };
+      headers['Authorization'] = `Bearer ${this.token}`;
     }
-    return {};
+    return headers;
   }
 
   public async add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry> {
-    log(`Adding agent ${agent.id} to remote registry '${this.name}'`);
-    try {
-      return await got
-        .post(`${this.endpoint}/registry/agents/add`, {
-          json: agent,
-          headers: this.getHeaders(),
-        })
-        .json<IAgentRegistryEntry>();
-    } catch (error) {
-      const errorMessage = `Failed to register with remote registry at ${this.endpoint}: ${error}`;
-      log(errorMessage, error);
-      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
-    }
+    const agentId = agent.name;
+    log(`Adding agent ${agentId} to remote registry`);
+    return await got
+      .post(`${this.endpoint}/agents`, {
+        json: agent,
+        headers: this.getHeaders(),
+      })
+      .json<IAgentRegistryEntry>();
   }
 
-  public async get(agentId: string): Promise<IAgentRegistryEntry> {
-    log(`Getting agent ${agentId} from remote registry '${this.name}'`);
+  public async get(agentId: string): Promise<IAgentRegistryEntry | null> {
+    log(`Getting agent ${agentId} from remote registry`);
     try {
-      const url = new URL(`${this.endpoint}/registry/agents/${agentId}`);
       return await got
-        .get(url.toString(), {
+        .get(`${this.endpoint}/agents/${agentId}`, {
           headers: this.getHeaders(),
         })
         .json<IAgentRegistryEntry>();
-    } catch (error) {
-      const errorMessage = `Failed to get agent ${agentId} from registry at ${this.endpoint}: ${error}`;
-      log(errorMessage, error);
-      throw new AgentError(AgentErrorTypes.AGENT_NOT_FOUND, errorMessage);
+    } catch (error: any) {
+      if (error.response && error.response.statusCode === 404) {
+        return null;
+      }
+      throw error;
     }
   }
 
   public async search(query: string): Promise<IAgentRegistryEntry[]> {
-    log(`Searching for '${query}' in remote registry '${this.name}'`);
-    try {
-      const url = new URL(`${this.endpoint}/registry/agents/search`);
-      url.searchParams.append('q', query);
-      return await got
-        .get(url.toString(), { headers: this.getHeaders() })
-        .json<IAgentRegistryEntry[]>();
-    } catch (error) {
-      const errorMessage = `Failed to search for agents with query "${query}" from registry at ${this.endpoint}: ${error}`;
-      log(errorMessage, error);
-      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
-    }
+    log(`Searching for '${query}' in remote registry`);
+    const url = new URL(`${this.endpoint}/agents`);
+    url.searchParams.append('q', query);
+    return await got
+      .get(url.toString(), { headers: this.getHeaders() })
+      .json<IAgentRegistryEntry[]>();
   }
 
   public async list(): Promise<IAgentRegistryEntry[]> {
-    log(`Listing agents from remote registry '${this.name}'`);
-    try {
-      const url = new URL(`${this.endpoint}/registry/agents/list`);
-      return await got
-        .get(url.toString(), { headers: this.getHeaders() })
-        .json<IAgentRegistryEntry[]>();
-    } catch (error) {
-      const errorMessage = `Failed to list agents from registry at ${this.endpoint}: ${error}`;
-      log(errorMessage, error);
-      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
-    }
+    log(`Listing agents from remote registry`);
+    return await got
+      .get(`${this.endpoint}/agents`, { headers: this.getHeaders() })
+      .json<IAgentRegistryEntry[]>();
   }
 
   public async remove(agentId: string): Promise<void> {
-    log(`Removing agent ${agentId} from remote registry '${this.name}'`);
-    try {
-      await got.delete(`${this.endpoint}/registry/agents/${agentId}`, {
+    log(`Removing agent ${agentId} from remote registry`);
+    await got.delete(`${this.endpoint}/agents/${agentId}`, {
+      headers: this.getHeaders(),
+    });
+  }
+
+  public async update(agentId: string, agentUpdate: Partial<IAgentRegistryEntry>): Promise<IAgentRegistryEntry> {
+    log(`Updating agent ${agentId} in remote registry`);
+    return await got
+      .put(`${this.endpoint}/agents/${agentId}`, {
+        json: agentUpdate,
         headers: this.getHeaders(),
-      });
-    } catch (error) {
-      const errorMessage = `Failed to remove agent ${agentId} from registry at ${this.endpoint}: ${error}`;
-      log(errorMessage, error);
-      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
-    }
+      })
+      .json<IAgentRegistryEntry>();
   }
 
   public async clear(): Promise<void> {
@@ -106,22 +92,7 @@ export class RemoteRegistry implements IAgentRegistry {
   }
 
   public async close(): Promise<void> {
-    log(`No-op for remote registry '${this.name}' close`);
-    // No-op for remote registry
+    log(`No-op for remote registry close`);
     return Promise.resolve();
-  }
-
-  public async update(agent: IAgentRegistryEntry): Promise<void> {
-    log(`Updating agent ${agent.id} in remote registry '${this.name}'`);
-    try {
-      await got.put(`${this.endpoint}/registry/agents/${agent.id}`, {
-        json: agent,
-        headers: this.getHeaders(),
-      });
-    } catch (error) {
-      const errorMessage = `Failed to update agent ${agent.id} in registry at ${this.endpoint}: ${error}`;
-      log(errorMessage, error);
-      throw new AgentError(AgentErrorTypes.PROCESSING_FAILED, errorMessage);
-    }
   }
 }

@@ -1,39 +1,32 @@
-import { IAgentRegistry, AgentErrorTypes, IAgentRegistryEntry } from '../types';
+import { IAgentRegistryAdapter, IAgentRegistryEntry } from '../types';
 import { QueryParser } from '../query/engine';
-import { AgentError } from '../agent-error';
 import debug from 'debug';
 
 const log = debug('openhive:in-memory-registry');
 
-export class InMemoryRegistry implements IAgentRegistry {
+export class InMemoryRegistry implements IAgentRegistryAdapter {
   public name: string;
-  public endpoint: string;
   private db: Map<string, IAgentRegistryEntry>;
 
-  constructor(name: string, endpoint: string) {
+  constructor(name: string = 'in-memory') {
     this.name = name;
-    this.endpoint = endpoint;
     this.db = new Map();
     log(`In-memory registry '${name}' initialized`);
   }
 
   public async add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry> {
-    log(`Adding agent ${agent.id} to registry '${this.name}'`);
-    this.db.set(agent.id, agent);
+    const agentId = agent.name; // In A2A, the name is the unique ID for our purposes
+    log(`Adding agent ${agentId} to registry '${this.name}'`);
+    if (this.db.has(agentId)) {
+      throw new Error(`Agent with name ${agentId} already exists.`);
+    }
+    this.db.set(agentId, agent);
     return agent;
   }
 
-  public async get(agentId: string): Promise<IAgentRegistryEntry> {
+  public async get(agentId: string): Promise<IAgentRegistryEntry | null> {
     log(`Getting agent ${agentId} from registry '${this.name}'`);
-    const agent = this.db.get(agentId);
-
-    if (!agent) {
-      const errorMessage = `Agent with id ${agentId} not found`;
-      log(errorMessage);
-      throw new AgentError(AgentErrorTypes.AGENT_NOT_FOUND, errorMessage);
-    }
-
-    return agent;
+    return this.db.get(agentId) || null;
   }
 
   public async search(query: string): Promise<IAgentRegistryEntry[]> {
@@ -63,9 +56,9 @@ export class InMemoryRegistry implements IAgentRegistry {
       const fieldMatch =
         !parsedQuery.fieldFilters.length ||
         parsedQuery.fieldFilters.every((filter) => {
-          if (filter.operator === 'has_capability') {
-            return agent.capabilities.some(
-              (c) => c.id.toLowerCase() === filter.value.toLowerCase()
+          if (filter.operator === 'has_skill') {
+            return agent.skills.some(
+              (s) => s.id.toLowerCase() === filter.value.toLowerCase() || s.name.toLowerCase() === filter.value.toLowerCase()
             );
           }
           const agentFieldValue =
@@ -94,6 +87,17 @@ export class InMemoryRegistry implements IAgentRegistry {
     this.db.delete(agentId);
   }
 
+  public async update(agentId: string, agentUpdate: Partial<IAgentRegistryEntry>): Promise<IAgentRegistryEntry> {
+    log(`Updating agent ${agentId} in registry '${this.name}'`);
+    const existingAgent = this.db.get(agentId);
+    if (!existingAgent) {
+      throw new Error(`Agent with name ${agentId} not found.`);
+    }
+    const updatedAgent = { ...existingAgent, ...agentUpdate };
+    this.db.set(agentId, updatedAgent);
+    return updatedAgent;
+  }
+
   public async clear(): Promise<void> {
     log(`Clearing all agents from registry '${this.name}'`);
     this.db.clear();
@@ -102,10 +106,5 @@ export class InMemoryRegistry implements IAgentRegistry {
   public async close(): Promise<void> {
     log(`Closing registry '${this.name}'`);
     this.db.clear();
-  }
-
-  public async update(agent: IAgentRegistryEntry): Promise<void> {
-    log(`Updating agent ${agent.id} in registry '${this.name}'`);
-    this.db.set(agent.id, agent);
   }
 }

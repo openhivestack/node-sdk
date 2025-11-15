@@ -1,16 +1,15 @@
-import { IAgentConfig } from "./agent-config.interface";
+import { AgentCard } from '@a2a-js/sdk';
 
-export type IAgentRegistryEntry = Omit<IAgentConfig, 'keys'> & { keys: { publicKey: string } };
+export type IAgentRegistryEntry = AgentCard;
 
-export interface IAgentRegistry {
+export interface IAgentRegistryAdapter {
   name: string;
-  endpoint: string;
-  add(agent: IAgentRegistryEntry, ...args: any[]): Promise<IAgentRegistryEntry>;
-  get(agentId: string, ...args: any[]): Promise<IAgentRegistryEntry>;
-  search(query: string, ...args: any[]): Promise<IAgentRegistryEntry[]>;
-  list(...args: any[]): Promise<IAgentRegistryEntry[]>;
-  remove(agentId: string, ...args: any[]): Promise<void>;
-  clear(...args: any[]): Promise<void>;
-  close(...args: any[]): Promise<void>;
-  update(agent: IAgentRegistryEntry, ...args: any[]): Promise<void>;
+  add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry>;
+  get(agentId: string): Promise<IAgentRegistryEntry | null>;
+  search(query: string): Promise<IAgentRegistryEntry[]>;
+  list(): Promise<IAgentRegistryEntry[]>;
+  remove(agentId: string): Promise<void>;
+  update(agentId: string, agent: Partial<IAgentRegistryEntry>): Promise<IAgentRegistryEntry>;
+  clear(): Promise<void>;
+  close(): Promise<void>;
 }

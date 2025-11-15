@@ -1,202 +1,159 @@
-import { IAgentRegistry, AgentErrorTypes, IAgentRegistryEntry } from '../types';
-import { QueryParser } from '../query/engine';
-import { AgentError } from '../agent-error';
-import debug from 'debug';
 import Database from 'better-sqlite3';
+import { IAgentRegistryAdapter, IAgentRegistryEntry } from '../types';
+import { Skill } from '@a2a-js/sdk';
+import debug from 'debug';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const log = debug('openhive:sqlite-registry');
 
-export class SqliteRegistry implements IAgentRegistry {
+export class SqliteRegistry implements IAgentRegistryAdapter {
   public name: string;
-  public endpoint: string;
   private db: Database.Database;
 
-  constructor(name: string, endpoint: string) {
-    this.name = name;
-    this.endpoint = endpoint; // in this context, endpoint is the file path
-    this.db = new Database(this.endpoint);
-    this.init();
-    log(`SQLite registry '${name}' initialized at ${this.endpoint}`);
+  constructor(dbPath: string) {
+    this.name = 'sqlite';
+
+    // Ensure the directory exists
+    const dir = path.dirname(dbPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    this.db = new Database(dbPath);
+    log(`SQLite registry initialized at ${dbPath}`);
+    this.createTable();
   }
 
-  private init(): void {
-    const createTable = this.db.prepare(`
+  private createTable() {
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS agents (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        endpoint TEXT,
-        capabilities TEXT,
+        name TEXT PRIMARY KEY,
         description TEXT,
+        protocolVersion TEXT,
         version TEXT,
-        host TEXT,
-        port INTEGER,
-        runtime TEXT,
-        private INTEGER,
-        logLevel TEXT,
-        env TEXT,
-        publicKey TEXT
+        url TEXT,
+        skills TEXT
       )
     `);
-    createTable.run();
   }
 
   public async add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry> {
-    log(`Adding agent ${agent.id} to registry '${this.name}'`);
-    const stmt = this.db.prepare(
-      'INSERT OR REPLACE INTO agents (id, name, endpoint, capabilities, description, version, host, port, runtime, private, logLevel, env, publicKey) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    );
-    stmt.run(
-      agent.id,
-      agent.name,
-      agent.endpoint,
-      JSON.stringify(agent.capabilities),
-      agent.description,
-      agent.version,
-      agent.host,
-      agent.port,
-      agent.runtime,
-      agent.private ? 1 : 0,
-      agent.logLevel,
-      agent.env,
-      agent.keys.publicKey
-    );
+    const agentId = agent.name;
+    log(`Adding agent ${agentId} to SQLite registry`);
+    try {
+      const stmt = this.db.prepare(
+        'INSERT INTO agents (name, description, protocolVersion, version, url, skills) VALUES (?, ?, ?, ?, ?, ?)'
+      );
+      stmt.run(
+        agent.name,
+        agent.description,
+        agent.protocolVersion,
+        agent.version,
+        agent.url,
+        JSON.stringify(agent.skills)
+      );
+    } catch (error: any) {
+      if (error.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
+        throw new Error(`Agent with name ${agentId} already exists.`);
+      }
+      throw error;
+    }
     return agent;
   }
 
-  public async get(agentId: string): Promise<IAgentRegistryEntry> {
-    log(`Getting agent ${agentId} from registry '${this.name}'`);
-    const stmt = this.db.prepare('SELECT * FROM agents WHERE id = ?');
-    const agentData = stmt.get(agentId) as any;
-
-    if (!agentData) {
-      const errorMessage = `Agent with id ${agentId} not found`;
-      log(errorMessage);
-      throw new AgentError(AgentErrorTypes.AGENT_NOT_FOUND, errorMessage);
+  public async get(agentId: string): Promise<IAgentRegistryEntry | null> {
+    log(`Getting agent ${agentId} from SQLite registry`);
+    const stmt = this.db.prepare('SELECT * FROM agents WHERE name = ?');
+    const row = stmt.get(agentId) as any;
+    if (!row) {
+      return null;
     }
-
-    return this.toAgentRegistryEntry(agentData);
-  }
-
-  public async search(query: string): Promise<IAgentRegistryEntry[]> {
-    log(`Searching for '${query}' in registry '${this.name}'`);
-    // NOTE: This is a naive implementation that fetches all agents and filters in memory.
-    // For large datasets, this should be optimized to use SQL queries.
-    const agents = await this.list();
-    if (!query || query.trim() === '') {
-      log('Empty query, returning all agents');
-      return agents;
-    }
-
-    const parsedQuery = QueryParser.parse(query);
-
-    const results = agents.filter((agent) => {
-      const generalMatch =
-        !parsedQuery.generalFilters.length ||
-        parsedQuery.generalFilters.every((filter) => {
-          return filter.fields.some((field) => {
-            const agentFieldValue = agent[field as keyof IAgentRegistryEntry];
-            return (
-              agentFieldValue &&
-              typeof agentFieldValue === 'string' &&
-              agentFieldValue.toLowerCase().includes(filter.term.toLowerCase())
-            );
-          });
-        });
-
-      const fieldMatch =
-        !parsedQuery.fieldFilters.length ||
-        parsedQuery.fieldFilters.every((filter) => {
-          if (filter.operator === 'has_capability') {
-            return agent.capabilities.some(
-              (c) => c.id.toLowerCase() === filter.value.toLowerCase()
-            );
-          }
-          const agentFieldValue =
-            agent[filter.field as keyof IAgentRegistryEntry];
-
-          if (
-            filter.field === 'private' &&
-            typeof agentFieldValue === 'boolean'
-          ) {
-            return agentFieldValue === (filter.value === 'true');
-          }
-
-          return (
-            agentFieldValue &&
-            typeof agentFieldValue === 'string' &&
-            agentFieldValue.toLowerCase().includes(filter.value.toLowerCase())
-          );
-        });
-
-      return generalMatch && fieldMatch;
-    });
-
-    log(`Search for '${query}' returned ${results.length} results`);
-    return results;
-  }
-
-  public async list(): Promise<IAgentRegistryEntry[]> {
-    log(`Listing all agents in registry '${this.name}'`);
-    const stmt = this.db.prepare('SELECT * FROM agents');
-    const agentsData = stmt.all() as any[];
-    return agentsData.map((agentData) => this.toAgentRegistryEntry(agentData));
+    return this.rowToAgent(row);
   }
 
   public async remove(agentId: string): Promise<void> {
-    log(`Removing agent ${agentId} from registry '${this.name}'`);
-    const stmt = this.db.prepare('DELETE FROM agents WHERE id = ?');
+    log(`Removing agent ${agentId} from SQLite registry`);
+    const stmt = this.db.prepare('DELETE FROM agents WHERE name = ?');
     stmt.run(agentId);
   }
 
+  public async list(): Promise<IAgentRegistryEntry[]> {
+    log('Listing all agents from SQLite registry');
+    const stmt = this.db.prepare('SELECT * FROM agents');
+    const rows = stmt.all() as any[];
+    return rows.map((row) => this.rowToAgent(row));
+  }
+
+  public async update(
+    agentId: string,
+    agentUpdate: Partial<IAgentRegistryEntry>
+  ): Promise<IAgentRegistryEntry> {
+    log(`Updating agent ${agentId} in SQLite registry`);
+    const existingAgent = await this.get(agentId);
+    if (!existingAgent) {
+      throw new Error(`Agent with name ${agentId} not found.`);
+    }
+
+    const updatedAgent = { ...existingAgent, ...agentUpdate };
+
+    const stmt = this.db.prepare(
+      'UPDATE agents SET description = ?, protocolVersion = ?, version = ?, url = ?, skills = ? WHERE name = ?'
+    );
+    stmt.run(
+      updatedAgent.description,
+      updatedAgent.protocolVersion,
+      updatedAgent.version,
+      updatedAgent.url,
+      JSON.stringify(updatedAgent.skills),
+      agentId
+    );
+    return updatedAgent;
+  }
+
+  public async search(query: string): Promise<IAgentRegistryEntry[]> {
+    log(`Searching for '${query}' in SQLite registry`);
+    const agents = await this.list();
+
+    if (!query || query.trim() === '') {
+      return agents;
+    }
+
+    const lowerCaseQuery = query.toLowerCase();
+
+    return agents.filter((agent) => {
+      const nameMatch = agent.name.toLowerCase().includes(lowerCaseQuery);
+      const descriptionMatch = agent.description
+        ?.toLowerCase()
+        .includes(lowerCaseQuery);
+      const skillMatch = agent.skills.some(
+        (s) =>
+          s.id.toLowerCase().includes(lowerCaseQuery) ||
+          s.name.toLowerCase().includes(lowerCaseQuery) ||
+          s.description?.toLowerCase().includes(lowerCaseQuery)
+      );
+      return nameMatch || descriptionMatch || skillMatch;
+    });
+  }
+
   public async clear(): Promise<void> {
-    log(`Clearing all agents from registry '${this.name}'`);
-    this.db.prepare('DELETE FROM agents').run();
+    log('Clearing all agents from SQLite registry');
+    this.db.exec('DELETE FROM agents');
   }
 
   public async close(): Promise<void> {
-    log(`Closing registry '${this.name}'`);
+    log('Closing SQLite registry connection');
     this.db.close();
   }
 
-  public async update(agent: IAgentRegistryEntry): Promise<void> {
-    log(`Updating agent ${agent.id} in registry '${this.name}'`);
-    const stmt = this.db.prepare(
-      'UPDATE agents SET name = ?, endpoint = ?, capabilities = ?, description = ?, version = ?, host = ?, port = ?, runtime = ?, private = ?, logLevel = ?, env = ?, publicKey = ? WHERE id = ?'
-    );
-    stmt.run(
-      agent.name,
-      agent.endpoint,
-      JSON.stringify(agent.capabilities),
-      agent.description,
-      agent.version,
-      agent.host,
-      agent.port,
-      agent.runtime,
-      agent.private ? 1 : 0,
-      agent.logLevel,
-      agent.env,
-      agent.keys.publicKey,
-      agent.id
-    );
-  }
-
-  private toAgentRegistryEntry(agentData: any): IAgentRegistryEntry {
+  private rowToAgent(row: any): IAgentRegistryEntry {
     return {
-      id: agentData.id,
-      name: agentData.name,
-      endpoint: agentData.endpoint,
-      capabilities: JSON.parse(agentData.capabilities),
-      description: agentData.description,
-      version: agentData.version,
-      host: agentData.host,
-      port: agentData.port,
-      runtime: agentData.runtime,
-      private: agentData.private === 1,
-      logLevel: agentData.logLevel,
-      env: agentData.env,
-      keys: {
-        publicKey: agentData.publicKey,
-      },
+      name: row.name,
+      description: row.description,
+      protocolVersion: row.protocolVersion,
+      version: row.version,
+      url: row.url,
+      skills: JSON.parse(row.skills).map((s: any) => s as Skill),
     };
   }
 }

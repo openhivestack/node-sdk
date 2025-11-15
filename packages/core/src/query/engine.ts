@@ -1,7 +1,7 @@
 export interface QueryFilter {
   field: string;
   value: string;
-  operator: 'includes' | 'equals' | 'has_capability';
+  operator: 'includes' | 'equals' | 'has_skill';
 }
 
 export interface ParsedQuery {
@@ -39,11 +39,11 @@ export class QueryParser {
         }
 
         if (field && fieldValue) {
-          if (field.toLowerCase() === 'capability') {
+          if (field.toLowerCase() === 'skill') {
             result.fieldFilters.push({
-              field: 'capabilities',
+              field: 'skills',
               value: fieldValue,
-              operator: 'has_capability',
+              operator: 'has_skill',
             });
           } else {
             result.fieldFilters.push({
@@ -56,7 +56,7 @@ export class QueryParser {
       } else {
         result.generalFilters.push({
           term: value,
-          fields: ['name', 'description', 'id'],
+          fields: ['name', 'description'],
         });
       }
     }
