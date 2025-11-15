@@ -5,20 +5,6 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@a2a-js/sdk@npm:^0.3.5":
-  version: 0.3.5
-  resolution: "@a2a-js/sdk@npm:0.3.5"
-  dependencies:
-    uuid: "npm:^11.1.0"
-  peerDependencies:
-    express: ^4.21.2 || ^5.1.0
-  peerDependenciesMeta:
-    express:
-      optional: true
-  checksum: 10c0/0af930f03cd7001c48a3db5a6b161b00727a8e06bd7a51fd2e2c21fc13cf6a91cc68339e780f670de746b632481de3736a9ac5d9c2863090960b6c01f53e680c
-  languageName: node
-  linkType: hard
-
 "@babel/code-frame@npm:^7.0.0, @babel/code-frame@npm:^7.12.13, @babel/code-frame@npm:^7.27.1":
   version: 7.27.1
   resolution: "@babel/code-frame@npm:7.27.1"
@@ -2619,6 +2605,7 @@ __metadata:
     "@types/node": "npm:~18.16.9"
     "@types/uuid": "npm:^9.0.8"
     "@types/yup": "npm:^0.32.0"
+    better-sqlite3: "npm:^11.10.0"
     body-parser: "npm:^1.20.2"
     debug: "npm:^4.3.4"
     dotenv: "npm:^16.3.1"
@@ -2642,7 +2629,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@open-hive/source@workspace:."
   dependencies:
-    "@a2a-js/sdk": "npm:^0.3.5"
     "@eslint/js": "npm:^9.8.0"
     "@nestjs/common": "npm:^11.1.6"
     "@nx/eslint": "npm:21.6.3"
@@ -10172,15 +10158,6 @@ __metadata:
   version: 1.0.1
   resolution: "utils-merge@npm:1.0.1"
   checksum: 10c0/02ba649de1b7ca8854bfe20a82f1dfbdda3fb57a22ab4a8972a63a34553cf7aa51bc9081cf7e001b035b88186d23689d69e71b510e610a09a4c66f68aa95b672
-  languageName: node
-  linkType: hard
-
-"uuid@npm:^11.1.0":
-  version: 11.1.0
-  resolution: "uuid@npm:11.1.0"
-  bin:
-    uuid: dist/esm/bin/uuid
-  checksum: 10c0/34aa51b9874ae398c2b799c88a127701408cd581ee89ec3baa53509dd8728cbb25826f2a038f9465f8b7be446f0fbf11558862965b18d21c993684297628d4d3
   languageName: node
   linkType: hard
 
