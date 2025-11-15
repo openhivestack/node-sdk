@@ -1,4 +1,25 @@
-import { AgentCard } from '@a2a-js/sdk';
+export interface Skill {
+  id: string;
+  name: string;
+  description?: string;
+  tags?: string[];
+  input?: Record<string, any>;
+  output?: Record<string, any>;
+}
+
+export interface AgentCard {
+  name: string;
+  description?: string;
+  protocolVersion: string;
+  version: string;
+  url: string;
+  skills: Skill[];
+  capabilities?: {
+    streaming?: boolean;
+    pushNotifications?: boolean;
+    stateTransitionHistory?: boolean;
+  };
+}
 
 export type IAgentRegistryEntry = AgentCard;
 

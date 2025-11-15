@@ -1,6 +1,5 @@
 import Database from 'better-sqlite3';
 import { IAgentRegistryAdapter, IAgentRegistryEntry } from '../types';
-import { Skill } from '@a2a-js/sdk';
 import debug from 'debug';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -153,7 +152,7 @@ export class SqliteRegistry implements IAgentRegistryAdapter {
       protocolVersion: row.protocolVersion,
       version: row.version,
       url: row.url,
-      skills: JSON.parse(row.skills).map((s: any) => s as Skill),
+      skills: JSON.parse(row.skills),
     };
   }
 }
