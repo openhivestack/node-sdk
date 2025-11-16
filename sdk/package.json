@@ -1,6 +1,6 @@
 {
   "name": "@open-hive/sdk",
-  "version": "0.10.4",
+  "version": "0.11.0",
   "private": true,
   "main": "./dist/index.js",
   "module": "./dist/index.js",
