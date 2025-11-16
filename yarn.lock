@@ -2259,6 +2259,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@open-hive/sdk@workspace:sdk"
   dependencies:
+    debug: "npm:^4.3.4"
     tslib: "npm:^2.3.0"
   languageName: unknown
   linkType: soft
