@@ -49,6 +49,11 @@
     }
   ],
   "release": {
+    "groups": {
+      "default": {
+        "projects": ["sdk"]
+      }
+    },
     "changelog": {
       "workspaceChangelog": {
         "file": false,
