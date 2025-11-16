@@ -4,9 +4,6 @@
   "files": [],
   "references": [
     {
-      "path": "./packages/core"
-    },
-    {
       "path": "./sdk"
     }
   ]

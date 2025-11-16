@@ -1,4 +1,3 @@
-import got from 'got';
 import { AgentRegistry, AgentCard } from '../types';
 import debug from 'debug';
 
@@ -28,51 +27,64 @@ export class RemoteRegistry implements AgentRegistry {
 
   public async add(agent: AgentCard): Promise<AgentCard> {
     log(`Adding agent ${agent.name} to remote registry`);
-    return await got
-      .post(`${this.endpoint}/agents`, {
-        json: agent,
-        headers: this.getHeaders(),
-      })
-      .json<AgentCard>();
+    const response = await fetch(`${this.endpoint}/agents`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(agent),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to add agent: ${response.statusText}`);
+    }
+    return response.json() as Promise<AgentCard>;
   }
 
   public async get(agentId: string): Promise<AgentCard | null> {
     log(`Getting agent ${agentId} from remote registry`);
-    try {
-      return await got
-        .get(`${this.endpoint}/agents/${agentId}`, {
-          headers: this.getHeaders(),
-        })
-        .json<AgentCard>();
-    } catch (error: any) {
-      if (error.response && error.response.statusCode === 404) {
-        return null;
-      }
-      throw error;
+    const response = await fetch(`${this.endpoint}/agents/${agentId}`, {
+      headers: this.getHeaders(),
+    });
+    if (response.status === 404) {
+      return null;
     }
+    if (!response.ok) {
+      throw new Error(`Failed to get agent: ${response.statusText}`);
+    }
+    return response.json() as Promise<AgentCard | null>;
   }
 
   public async search(query: string): Promise<AgentCard[]> {
     log(`Searching for '${query}' in remote registry`);
     const url = new URL(`${this.endpoint}/agents`);
     url.searchParams.append('q', query);
-    return await got
-      .get(url.toString(), { headers: this.getHeaders() })
-      .json<AgentCard[]>();
+    const response = await fetch(url.toString(), {
+      headers: this.getHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to search agents: ${response.statusText}`);
+    }
+    return response.json() as Promise<AgentCard[]>;
   }
 
   public async list(): Promise<AgentCard[]> {
     log(`Listing agents from remote registry`);
-    return await got
-      .get(`${this.endpoint}/agents`, { headers: this.getHeaders() })
-      .json<AgentCard[]>();
+    const response = await fetch(`${this.endpoint}/agents`, {
+      headers: this.getHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to list agents: ${response.statusText}`);
+    }
+    return response.json() as Promise<AgentCard[]>;
   }
 
   public async delete(agentId: string): Promise<void> {
     log(`Removing agent ${agentId} from remote registry`);
-    await got.delete(`${this.endpoint}/agents/${agentId}`, {
+    const response = await fetch(`${this.endpoint}/agents/${agentId}`, {
+      method: 'DELETE',
       headers: this.getHeaders(),
     });
+    if (!response.ok) {
+      throw new Error(`Failed to delete agent: ${response.statusText}`);
+    }
   }
 
   public async update(
@@ -80,12 +92,15 @@ export class RemoteRegistry implements AgentRegistry {
     agentUpdate: Partial<AgentCard>
   ): Promise<AgentCard> {
     log(`Updating agent ${agentId} in remote registry`);
-    return await got
-      .put(`${this.endpoint}/agents/${agentId}`, {
-        json: agentUpdate,
-        headers: this.getHeaders(),
-      })
-      .json<AgentCard>();
+    const response = await fetch(`${this.endpoint}/agents/${agentId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(agentUpdate),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to update agent: ${response.statusText}`);
+    }
+    return response.json() as Promise<AgentCard>;
   }
 
   public async clear(): Promise<void> {
