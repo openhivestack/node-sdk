@@ -13,7 +13,7 @@ export interface ParsedQuery {
 }
 
 export class QueryParser {
-  public static parse(query: string): ParsedQuery {
+  public parse(query: string): ParsedQuery {
     const result: ParsedQuery = {
       fieldFilters: [],
       generalFilters: [],

@@ -1,10 +1,10 @@
 import got from 'got';
-import { IAgentRegistryAdapter, IAgentRegistryEntry } from '../types';
+import { AgentRegistry, AgentCard } from '../types';
 import debug from 'debug';
 
 const log = debug('openhive:remote-registry');
 
-export class RemoteRegistry implements IAgentRegistryAdapter {
+export class RemoteRegistry implements AgentRegistry {
   public name: string;
   public endpoint: string;
   private token?: string;
@@ -26,24 +26,24 @@ export class RemoteRegistry implements IAgentRegistryAdapter {
     return headers;
   }
 
-  public async add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry> {
+  public async add(agent: AgentCard): Promise<AgentCard> {
     log(`Adding agent ${agent.name} to remote registry`);
     return await got
       .post(`${this.endpoint}/agents`, {
         json: agent,
         headers: this.getHeaders(),
       })
-      .json<IAgentRegistryEntry>();
+      .json<AgentCard>();
   }
 
-  public async get(agentId: string): Promise<IAgentRegistryEntry | null> {
+  public async get(agentId: string): Promise<AgentCard | null> {
     log(`Getting agent ${agentId} from remote registry`);
     try {
       return await got
         .get(`${this.endpoint}/agents/${agentId}`, {
           headers: this.getHeaders(),
         })
-        .json<IAgentRegistryEntry>();
+        .json<AgentCard>();
     } catch (error: any) {
       if (error.response && error.response.statusCode === 404) {
         return null;
@@ -52,37 +52,40 @@ export class RemoteRegistry implements IAgentRegistryAdapter {
     }
   }
 
-  public async search(query: string): Promise<IAgentRegistryEntry[]> {
+  public async search(query: string): Promise<AgentCard[]> {
     log(`Searching for '${query}' in remote registry`);
     const url = new URL(`${this.endpoint}/agents`);
     url.searchParams.append('q', query);
     return await got
       .get(url.toString(), { headers: this.getHeaders() })
-      .json<IAgentRegistryEntry[]>();
+      .json<AgentCard[]>();
   }
 
-  public async list(): Promise<IAgentRegistryEntry[]> {
+  public async list(): Promise<AgentCard[]> {
     log(`Listing agents from remote registry`);
     return await got
       .get(`${this.endpoint}/agents`, { headers: this.getHeaders() })
-      .json<IAgentRegistryEntry[]>();
+      .json<AgentCard[]>();
   }
 
-  public async remove(agentId: string): Promise<void> {
+  public async delete(agentId: string): Promise<void> {
     log(`Removing agent ${agentId} from remote registry`);
     await got.delete(`${this.endpoint}/agents/${agentId}`, {
       headers: this.getHeaders(),
     });
   }
 
-  public async update(agentId: string, agentUpdate: Partial<IAgentRegistryEntry>): Promise<IAgentRegistryEntry> {
+  public async update(
+    agentId: string,
+    agentUpdate: Partial<AgentCard>
+  ): Promise<AgentCard> {
     log(`Updating agent ${agentId} in remote registry`);
     return await got
       .put(`${this.endpoint}/agents/${agentId}`, {
         json: agentUpdate,
         headers: this.getHeaders(),
       })
-      .json<IAgentRegistryEntry>();
+      .json<AgentCard>();
   }
 
   public async clear(): Promise<void> {

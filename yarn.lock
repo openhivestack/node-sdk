@@ -2625,6 +2625,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@open-hive/sdk@workspace:sdk":
+  version: 0.0.0-use.local
+  resolution: "@open-hive/sdk@workspace:sdk"
+  dependencies:
+    tslib: "npm:^2.3.0"
+  languageName: unknown
+  linkType: soft
+
 "@open-hive/source@workspace:.":
   version: 0.0.0-use.local
   resolution: "@open-hive/source@workspace:."

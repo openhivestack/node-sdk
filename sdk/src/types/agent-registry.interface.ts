@@ -22,19 +22,17 @@ export interface AgentCard {
   };
 }
 
-export type IAgentRegistryEntry = AgentCard & { id: string };
-
-export interface IAgentRegistryAdapter {
+export interface AgentRegistry {
   name: string;
-  add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry>;
-  get(agentId: string): Promise<IAgentRegistryEntry | null>;
-  search(query: string): Promise<IAgentRegistryEntry[]>;
-  list(): Promise<IAgentRegistryEntry[]>;
-  remove(agentId: string): Promise<void>;
+  add(agent: AgentCard): Promise<AgentCard>;
+  get(agentId: string): Promise<AgentCard | null>;
+  search(query: string): Promise<AgentCard[]>;
+  list(): Promise<AgentCard[]>;
+  delete(agentId: string): Promise<void>;
   update(
     agentId: string,
-    agent: Partial<IAgentRegistryEntry>
-  ): Promise<IAgentRegistryEntry>;
+    agent: Partial<AgentCard>
+  ): Promise<AgentCard>;
   clear(): Promise<void>;
   close(): Promise<void>;
 }

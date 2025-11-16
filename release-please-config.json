@@ -1,9 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "packages": {
-    "packages/core": {
-      "package-name": "@open-hive/core",
-      "component": "core",
+    "sdk": {
+      "package-name": "@open-hive/sdk",
+      "component": "sdk",
       "release-type": "node"
     }
   },
