@@ -2,65 +2,33 @@ import { AgentRegistry, AgentCard, Skill } from '../types';
 import { QueryParser } from '../query/engine';
 import debug from 'debug';
 import { randomUUID } from 'crypto';
+import Database from 'better-sqlite3';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const log = debug('openhive:sqlite-registry');
 
-// This is a placeholder since we don't have a real sqlite driver in this environment.
-// The actual implementation would use a library like 'sqlite3'.
-const Database = class {
-  constructor(path: string, callback: (err: Error | null) => void) {
-    log(`[FAKE DB] Opening database at ${path}`);
-    setTimeout(() => callback(null), 100);
-  }
-  run(sql: string, params: any[], callback: (err: Error | null) => void) {
-    log(`[FAKE DB] Running SQL: ${sql} with params: ${params}`);
-    setTimeout(() => callback(null), 100);
-  }
-  get(sql: string, params: any[], callback: (err: Error | null, row: any) => void) {
-    log(`[FAKE DB] Getting SQL: ${sql} with params: ${params}`);
-    setTimeout(() => callback(null, null), 100);
-  }
-  all(sql: string, callback: (err: Error | null, rows: any[]) => void) {
-    log(`[FAKE DB] Getting all SQL: ${sql}`);
-    setTimeout(() => callback(null, []), 100);
-  }
-  close(callback: (err: Error | null) => void) {
-    log(`[FAKE DB] Closing database`);
-    setTimeout(() => callback(null), 100);
-  }
-};
-
 export class SqliteRegistry implements AgentRegistry {
   public name: string;
-  private db: any;
+  private db: Database.Database;
   private queryParser: QueryParser;
 
   constructor(name: string, dbPath: string, queryParser?: QueryParser) {
     this.name = name;
     this.queryParser = queryParser || new QueryParser();
 
-    // This part would use a real sqlite3 driver.
-    // this.db = new sqlite3.Database(dbPath, (err) => {
-    //   if (err) {
-    //     log(`Error opening database: ${err.message}`);
-    //     throw err;
-    //   }
-    //   log(`SQLite registry '${name}' initialized at ${dbPath}`);
-    //   this.createTable();
-    // });
+    const dir = path.dirname(dbPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
 
-    this.db = new Database(dbPath, (err) => {
-      if (err) {
-        log(`Error opening database: ${err?.message}`);
-        throw err;
-      }
-      log(`SQLite registry '${name}' initialized at ${dbPath}`);
-      this.createTable();
-    });
+    this.db = new Database(dbPath);
+    log(`SQLite registry '${name}' initialized at ${dbPath}`);
+    this.createTable();
   }
 
   private createTable(): void {
-    const createTableSql = `
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS agents (
           id TEXT PRIMARY KEY,
           name TEXT UNIQUE,
@@ -70,13 +38,7 @@ export class SqliteRegistry implements AgentRegistry {
           url TEXT,
           skills TEXT
       )
-    `;
-    this.db.run(createTableSql, [], (err: Error | null) => {
-      if (err) {
-        log(`Error creating table: ${err.message}`);
-        throw err;
-      }
-    });
+    `);
   }
 
   public async add(agent: AgentCard): Promise<AgentCard> {
@@ -86,53 +48,41 @@ export class SqliteRegistry implements AgentRegistry {
       INSERT INTO agents (id, name, description, protocolVersion, version, url, skills)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, [
-        agentWithId.id,
-        agentWithId.name,
-        agentWithId.description,
-        agentWithId.protocolVersion,
-        agentWithId.version,
-        agentWithId.url,
-        skillsJson
-      ], (err: Error | null) => {
-        if (err) {
-          log(`Error adding agent: ${err.message}`);
-          reject(err);
-        } else {
-          log(`Agent ${agentWithId.name} added to SQLite registry`);
-          resolve(agentWithId);
-        }
-      });
-    });
+    try {
+      this.db
+        .prepare(sql)
+        .run(
+          agentWithId.id,
+          agentWithId.name,
+          agentWithId.description,
+          agentWithId.protocolVersion,
+          agentWithId.version,
+          agentWithId.url,
+          skillsJson
+        );
+      log(`Agent ${agentWithId.name} added to SQLite registry`);
+      return agentWithId;
+    } catch (error) {
+      if ((error as any).code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        throw new Error(`Agent with name ${agent.name} already exists.`);
+      }
+      throw error;
+    }
   }
 
   public async get(agentId: string): Promise<AgentCard | null> {
     const sql = 'SELECT * FROM agents WHERE id = ?';
-    return new Promise((resolve, reject) => {
-      this.db.get(sql, [agentId], (err: Error | null, row: any) => {
-        if (err) {
-          log(`Error getting agent: ${err.message}`);
-          reject(err);
-        } else {
-          resolve(row ? { ...row, skills: JSON.parse(row.skills) } : null);
-        }
-      });
-    });
+    const row = this.db.prepare(sql).get(agentId) as any;
+    if (!row) {
+      return null;
+    }
+    return { ...row, skills: JSON.parse(row.skills) };
   }
 
   public async list(): Promise<AgentCard[]> {
     const sql = 'SELECT * FROM agents';
-    return new Promise((resolve, reject) => {
-      this.db.all(sql, (err: Error | null, rows: any[]) => {
-        if (err) {
-          log(`Error listing agents: ${err.message}`);
-          reject(err);
-        } else {
-          resolve(rows.map(row => ({ ...row, skills: JSON.parse(row.skills) })));
-        }
-      });
-    });
+    const rows = this.db.prepare(sql).all() as any[];
+    return rows.map((row) => ({ ...row, skills: JSON.parse(row.skills) }));
   }
 
   public async search(query: string): Promise<AgentCard[]> {
@@ -162,11 +112,12 @@ export class SqliteRegistry implements AgentRegistry {
         parsedQuery.fieldFilters.every((filter) => {
           if (filter.operator === 'has_skill') {
             return agent.skills.some(
-              (s: Skill) => s.id.toLowerCase() === filter.value.toLowerCase() || s.name.toLowerCase() === filter.value.toLowerCase()
+              (s: Skill) =>
+                s.id.toLowerCase() === filter.value.toLowerCase() ||
+                s.name.toLowerCase() === filter.value.toLowerCase()
             );
           }
-          const agentFieldValue =
-            agent[filter.field as keyof AgentCard];
+          const agentFieldValue = agent[filter.field as keyof AgentCard];
           return (
             agentFieldValue &&
             typeof agentFieldValue === 'string' &&
@@ -180,20 +131,14 @@ export class SqliteRegistry implements AgentRegistry {
 
   public async delete(agentId: string): Promise<void> {
     const sql = 'DELETE FROM agents WHERE id = ?';
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, [agentId], (err: Error | null) => {
-        if (err) {
-          log(`Error deleting agent: ${err.message}`);
-          reject(err);
-        } else {
-          log(`Agent ${agentId} deleted from SQLite registry`);
-          resolve();
-        }
-      });
-    });
+    this.db.prepare(sql).run(agentId);
+    log(`Agent ${agentId} deleted from SQLite registry`);
   }
 
-  public async update(agentId: string, agentUpdate: Partial<AgentCard>): Promise<AgentCard> {
+  public async update(
+    agentId: string,
+    agentUpdate: Partial<AgentCard>
+  ): Promise<AgentCard> {
     const existingAgent = await this.get(agentId);
     if (!existingAgent) {
       throw new Error(`Agent with ID ${agentId} not found.`);
@@ -207,8 +152,9 @@ export class SqliteRegistry implements AgentRegistry {
       WHERE id = ?
     `;
 
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, [
+    this.db
+      .prepare(sql)
+      .run(
         updatedAgent.name,
         updatedAgent.description,
         updatedAgent.protocolVersion,
@@ -216,44 +162,19 @@ export class SqliteRegistry implements AgentRegistry {
         updatedAgent.url,
         skillsJson,
         agentId
-      ], (err: Error | null) => {
-        if (err) {
-          log(`Error updating agent: ${err.message}`);
-          reject(err);
-        } else {
-          log(`Agent ${agentId} updated in SQLite registry`);
-          resolve(updatedAgent);
-        }
-      });
-    });
+      );
+    log(`Agent ${agentId} updated in SQLite registry`);
+    return updatedAgent;
   }
 
   public async clear(): Promise<void> {
     const sql = 'DELETE FROM agents';
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, [], (err: Error | null) => {
-        if (err) {
-          log(`Error clearing registry: ${err.message}`);
-          reject(err);
-        } else {
-          log('SQLite registry cleared');
-          resolve();
-        }
-      });
-    });
+    this.db.prepare(sql).run();
+    log('SQLite registry cleared');
   }
 
   public async close(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.db.close((err: Error | null) => {
-        if (err) {
-          log(`Error closing database: ${err.message}`);
-          reject(err);
-        } else {
-          log('SQLite database connection closed');
-          resolve();
-        }
-      });
-    });
+    this.db.close();
+    log('SQLite database connection closed');
   }
 }
