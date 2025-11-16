@@ -4,6 +4,7 @@ import debug from 'debug';
 import * as fs from 'fs';
 import * as path from 'path';
 import { QueryParser } from '../query/engine';
+import { randomUUID } from 'crypto';
 
 const log = debug('openhive:sqlite-registry');
 
@@ -28,7 +29,8 @@ export class SqliteRegistry implements IAgentRegistryAdapter {
   private createTable() {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS agents (
-        name TEXT PRIMARY KEY,
+        id TEXT PRIMARY KEY,
+        name TEXT,
         description TEXT,
         protocolVersion TEXT,
         version TEXT,
@@ -36,35 +38,37 @@ export class SqliteRegistry implements IAgentRegistryAdapter {
         skills TEXT
       )
     `);
+    this.db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_name ON agents (name)');
   }
 
   public async add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry> {
-    const agentId = agent.name;
-    log(`Adding agent ${agentId} to SQLite registry`);
+    const agentWithId = { ...agent, id: agent.id || randomUUID() };
+    log(`Adding agent ${agentWithId.name} (${agentWithId.id}) to SQLite registry`);
     try {
       const stmt = this.db.prepare(
-        'INSERT INTO agents (name, description, protocolVersion, version, url, skills) VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO agents (id, name, description, protocolVersion, version, url, skills) VALUES (?, ?, ?, ?, ?, ?, ?)'
       );
       stmt.run(
-        agent.name,
-        agent.description,
-        agent.protocolVersion,
-        agent.version,
-        agent.url,
-        JSON.stringify(agent.skills)
+        agentWithId.id,
+        agentWithId.name,
+        agentWithId.description,
+        agentWithId.protocolVersion,
+        agentWithId.version,
+        agentWithId.url,
+        JSON.stringify(agentWithId.skills)
       );
     } catch (error: any) {
-      if (error.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
-        throw new Error(`Agent with name ${agentId} already exists.`);
+      if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        throw new Error(`Agent with name ${agent.name} already exists.`);
       }
       throw error;
     }
-    return agent;
+    return agentWithId;
   }
 
   public async get(agentId: string): Promise<IAgentRegistryEntry | null> {
     log(`Getting agent ${agentId} from SQLite registry`);
-    const stmt = this.db.prepare('SELECT * FROM agents WHERE name = ?');
+    const stmt = this.db.prepare('SELECT * FROM agents WHERE id = ?');
     const row = stmt.get(agentId) as any;
     if (!row) {
       return null;
@@ -74,7 +78,7 @@ export class SqliteRegistry implements IAgentRegistryAdapter {
 
   public async remove(agentId: string): Promise<void> {
     log(`Removing agent ${agentId} from SQLite registry`);
-    const stmt = this.db.prepare('DELETE FROM agents WHERE name = ?');
+    const stmt = this.db.prepare('DELETE FROM agents WHERE id = ?');
     stmt.run(agentId);
   }
 
@@ -92,15 +96,16 @@ export class SqliteRegistry implements IAgentRegistryAdapter {
     log(`Updating agent ${agentId} in SQLite registry`);
     const existingAgent = await this.get(agentId);
     if (!existingAgent) {
-      throw new Error(`Agent with name ${agentId} not found.`);
+      throw new Error(`Agent with ID ${agentId} not found.`);
     }
 
     const updatedAgent = { ...existingAgent, ...agentUpdate };
 
     const stmt = this.db.prepare(
-      'UPDATE agents SET description = ?, protocolVersion = ?, version = ?, url = ?, skills = ? WHERE name = ?'
+      'UPDATE agents SET name = ?, description = ?, protocolVersion = ?, version = ?, url = ?, skills = ? WHERE id = ?'
     );
     stmt.run(
+      updatedAgent.name,
       updatedAgent.description,
       updatedAgent.protocolVersion,
       updatedAgent.version,
@@ -175,6 +180,7 @@ export class SqliteRegistry implements IAgentRegistryAdapter {
 
   private rowToAgent(row: any): IAgentRegistryEntry {
     return {
+      id: row.id,
       name: row.name,
       description: row.description,
       protocolVersion: row.protocolVersion,

@@ -27,8 +27,7 @@ export class RemoteRegistry implements IAgentRegistryAdapter {
   }
 
   public async add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry> {
-    const agentId = agent.name;
-    log(`Adding agent ${agentId} to remote registry`);
+    log(`Adding agent ${agent.name} to remote registry`);
     return await got
       .post(`${this.endpoint}/agents`, {
         json: agent,

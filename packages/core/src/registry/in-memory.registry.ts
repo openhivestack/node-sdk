@@ -1,6 +1,7 @@
 import { IAgentRegistryAdapter, IAgentRegistryEntry } from '../types';
 import { QueryParser } from '../query/engine';
 import debug from 'debug';
+import { randomUUID } from 'crypto';
 
 const log = debug('openhive:in-memory-registry');
 
@@ -15,13 +16,17 @@ export class InMemoryRegistry implements IAgentRegistryAdapter {
   }
 
   public async add(agent: IAgentRegistryEntry): Promise<IAgentRegistryEntry> {
-    const agentId = agent.name; // In A2A, the name is the unique ID for our purposes
-    log(`Adding agent ${agentId} to registry '${this.name}'`);
-    if (this.db.has(agentId)) {
-      throw new Error(`Agent with name ${agentId} already exists.`);
+    // Ensure name is unique before adding
+    for (const existingAgent of this.db.values()) {
+      if (existingAgent.name === agent.name) {
+        throw new Error(`Agent with name ${agent.name} already exists.`);
+      }
     }
-    this.db.set(agentId, agent);
-    return agent;
+
+    const agentWithId = { ...agent, id: agent.id || randomUUID() };
+    log(`Adding agent ${agentWithId.name} (${agentWithId.id}) to registry '${this.name}'`);
+    this.db.set(agentWithId.id, agentWithId);
+    return agentWithId;
   }
 
   public async get(agentId: string): Promise<IAgentRegistryEntry | null> {
@@ -91,7 +96,7 @@ export class InMemoryRegistry implements IAgentRegistryAdapter {
     log(`Updating agent ${agentId} in registry '${this.name}'`);
     const existingAgent = this.db.get(agentId);
     if (!existingAgent) {
-      throw new Error(`Agent with name ${agentId} not found.`);
+      throw new Error(`Agent with ID ${agentId} not found.`);
     }
     const updatedAgent = { ...existingAgent, ...agentUpdate };
     this.db.set(agentId, updatedAgent);
