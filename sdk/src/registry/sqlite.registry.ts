@@ -1,7 +1,6 @@
 import { AgentRegistry, AgentCard, Skill } from '../types';
 import { QueryParser } from '../query/engine';
 import debug from 'debug';
-import { randomUUID } from 'crypto';
 import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -30,8 +29,7 @@ export class SqliteRegistry implements AgentRegistry {
   private createTable(): void {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS agents (
-          id TEXT PRIMARY KEY,
-          name TEXT UNIQUE,
+          name TEXT PRIMARY KEY,
           description TEXT,
           protocolVersion TEXT,
           version TEXT,
@@ -42,37 +40,35 @@ export class SqliteRegistry implements AgentRegistry {
   }
 
   public async add(agent: AgentCard): Promise<AgentCard> {
-    const agentWithId = { ...agent, id: agent.id || randomUUID() };
-    const skillsJson = JSON.stringify(agentWithId.skills);
+    const skillsJson = JSON.stringify(agent.skills);
     const sql = `
-      INSERT INTO agents (id, name, description, protocolVersion, version, url, skills)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO agents (name, description, protocolVersion, version, url, skills)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
     try {
       this.db
         .prepare(sql)
         .run(
-          agentWithId.id,
-          agentWithId.name,
-          agentWithId.description,
-          agentWithId.protocolVersion,
-          agentWithId.version,
-          agentWithId.url,
+          agent.name,
+          agent.description,
+          agent.protocolVersion,
+          agent.version,
+          agent.url,
           skillsJson
         );
-      log(`Agent ${agentWithId.name} added to SQLite registry`);
-      return agentWithId;
+      log(`Agent ${agent.name} added to SQLite registry`);
+      return agent;
     } catch (error) {
-      if ((error as any).code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      if ((error as any).code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
         throw new Error(`Agent with name ${agent.name} already exists.`);
       }
       throw error;
     }
   }
 
-  public async get(agentId: string): Promise<AgentCard | null> {
-    const sql = 'SELECT * FROM agents WHERE id = ?';
-    const row = this.db.prepare(sql).get(agentId) as any;
+  public async get(agentName: string): Promise<AgentCard | null> {
+    const sql = 'SELECT * FROM agents WHERE name = ?';
+    const row = this.db.prepare(sql).get(agentName) as any;
     if (!row) {
       return null;
     }
@@ -129,41 +125,40 @@ export class SqliteRegistry implements AgentRegistry {
     });
   }
 
-  public async delete(agentId: string): Promise<void> {
-    const sql = 'DELETE FROM agents WHERE id = ?';
-    this.db.prepare(sql).run(agentId);
-    log(`Agent ${agentId} deleted from SQLite registry`);
+  public async delete(agentName: string): Promise<void> {
+    const sql = 'DELETE FROM agents WHERE name = ?';
+    this.db.prepare(sql).run(agentName);
+    log(`Agent ${agentName} deleted from SQLite registry`);
   }
 
   public async update(
-    agentId: string,
+    agentName: string,
     agentUpdate: Partial<AgentCard>
   ): Promise<AgentCard> {
-    const existingAgent = await this.get(agentId);
+    const existingAgent = await this.get(agentName);
     if (!existingAgent) {
-      throw new Error(`Agent with ID ${agentId} not found.`);
+      throw new Error(`Agent with name ${agentName} not found.`);
     }
-    const updatedAgent = { ...existingAgent, ...agentUpdate, id: agentId };
+    const updatedAgent = { ...existingAgent, ...agentUpdate };
     const skillsJson = JSON.stringify(updatedAgent.skills);
 
     const sql = `
       UPDATE agents
-      SET name = ?, description = ?, protocolVersion = ?, version = ?, url = ?, skills = ?
-      WHERE id = ?
+      SET description = ?, protocolVersion = ?, version = ?, url = ?, skills = ?
+      WHERE name = ?
     `;
 
     this.db
       .prepare(sql)
       .run(
-        updatedAgent.name,
         updatedAgent.description,
         updatedAgent.protocolVersion,
         updatedAgent.version,
         updatedAgent.url,
         skillsJson,
-        agentId
+        agentName
       );
-    log(`Agent ${agentId} updated in SQLite registry`);
+    log(`Agent ${agentName} updated in SQLite registry`);
     return updatedAgent;
   }
 

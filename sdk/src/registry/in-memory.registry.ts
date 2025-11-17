@@ -1,7 +1,6 @@
 import { AgentRegistry, AgentCard } from '../types';
 import { QueryParser } from '../query/engine';
 import debug from 'debug';
-import { randomUUID } from 'crypto';
 
 const log = debug('openhive:in-memory-registry');
 
@@ -25,17 +24,14 @@ export class InMemoryRegistry implements AgentRegistry {
       }
     }
 
-    const agentWithId = { ...agent, id: agent.id || randomUUID() };
-    log(
-      `Adding agent ${agentWithId.name} (${agentWithId.id}) to registry '${this.name}'`
-    );
-    this.db.set(agentWithId.id, agentWithId);
-    return agentWithId;
+    log(`Adding agent ${agent.name} to registry '${this.name}'`);
+    this.db.set(agent.name, agent);
+    return agent;
   }
 
-  public async get(agentId: string): Promise<AgentCard | null> {
-    log(`Getting agent ${agentId} from registry '${this.name}'`);
-    const agent = this.db.get(agentId);
+  public async get(agentName: string): Promise<AgentCard | null> {
+    log(`Getting agent ${agentName} from registry '${this.name}'`);
+    const agent = this.db.get(agentName);
     return agent ? { ...agent } : null;
   }
 
@@ -93,22 +89,22 @@ export class InMemoryRegistry implements AgentRegistry {
     return Array.from(this.db.values());
   }
 
-  public async delete(agentId: string): Promise<void> {
-    log(`Removing agent ${agentId} from registry '${this.name}'`);
-    this.db.delete(agentId);
+  public async delete(agentName: string): Promise<void> {
+    log(`Removing agent ${agentName} from registry '${this.name}'`);
+    this.db.delete(agentName);
   }
 
   public async update(
-    agentId: string,
+    agentName: string,
     agentUpdate: Partial<AgentCard>
   ): Promise<AgentCard> {
-    log(`Updating agent ${agentId} in registry '${this.name}'`);
-    const existingAgent = this.db.get(agentId);
+    log(`Updating agent ${agentName} in registry '${this.name}'`);
+    const existingAgent = this.db.get(agentName);
     if (!existingAgent) {
-      throw new Error(`Agent with ID ${agentId} not found.`);
+      throw new Error(`Agent with name ${agentName} not found.`);
     }
-    const updatedAgent = { ...existingAgent, ...agentUpdate, id: agentId };
-    this.db.set(agentId, updatedAgent);
+    const updatedAgent = { ...existingAgent, ...agentUpdate };
+    this.db.set(agentName, updatedAgent);
     return updatedAgent;
   }
 

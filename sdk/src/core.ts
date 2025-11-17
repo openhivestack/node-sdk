@@ -18,7 +18,10 @@ export class OpenHive {
     if (options.registry) {
       this._registry = options.registry;
     } else if (options.registryUrl) {
-      this._registry = new RemoteRegistry(options.registryUrl, options.authToken);
+      this._registry = new RemoteRegistry(
+        options.registryUrl,
+        options.authToken
+      );
     } else {
       this._registry = new InMemoryRegistry('in-memory', options.queryParser);
     }
@@ -28,8 +31,8 @@ export class OpenHive {
     return this._registry.add(agent);
   }
 
-  public async get(agentId: string): Promise<AgentCard | null> {
-    return this._registry.get(agentId);
+  public async get(agentName: string): Promise<AgentCard | null> {
+    return this._registry.get(agentName);
   }
 
   public async list(): Promise<AgentCard[]> {
@@ -37,14 +40,14 @@ export class OpenHive {
   }
 
   public async update(
-    agentId: string,
+    agentName: string,
     agent: Partial<AgentCard>
   ): Promise<AgentCard> {
-    return this._registry.update(agentId, agent);
+    return this._registry.update(agentName, agent);
   }
 
-  public async delete(agentId: string): Promise<void> {
-    return this._registry.delete(agentId);
+  public async delete(agentName: string): Promise<void> {
+    return this._registry.delete(agentName);
   }
 
   public async search(query: string): Promise<AgentCard[]> {

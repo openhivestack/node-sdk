@@ -8,7 +8,6 @@ export interface Skill {
 }
 
 export interface AgentCard {
-  id?: string; // Optional on creation, will be assigned by the registry
   name: string;
   description?: string;
   protocolVersion: string;
@@ -25,14 +24,11 @@ export interface AgentCard {
 export interface AgentRegistry {
   name: string;
   add(agent: AgentCard): Promise<AgentCard>;
-  get(agentId: string): Promise<AgentCard | null>;
+  get(agentName: string): Promise<AgentCard | null>;
   search(query: string): Promise<AgentCard[]>;
   list(): Promise<AgentCard[]>;
-  delete(agentId: string): Promise<void>;
-  update(
-    agentId: string,
-    agent: Partial<AgentCard>
-  ): Promise<AgentCard>;
+  delete(agentName: string): Promise<void>;
+  update(agentName: string, agent: Partial<AgentCard>): Promise<AgentCard>;
   clear(): Promise<void>;
   close(): Promise<void>;
 }
