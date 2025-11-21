@@ -6,7 +6,7 @@ import { QueryParser } from './query/engine';
 
 export interface OpenHiveOptions {
   registryUrl?: string;
-  authToken?: string;
+  headers?: Record<string, string>;
   queryParser?: QueryParser;
   registry?: AgentRegistry;
 }
@@ -18,10 +18,8 @@ export class OpenHive {
     if (options.registry) {
       this._registry = options.registry;
     } else if (options.registryUrl) {
-      this._registry = new RemoteRegistry(
-        options.registryUrl,
-        options.authToken
-      );
+      const headers: Record<string, string> = options.headers || {};
+      this._registry = new RemoteRegistry(options.registryUrl, { headers });
     } else {
       this._registry = new InMemoryRegistry('in-memory', options.queryParser);
     }

@@ -8,9 +8,9 @@ This SDK is designed to complement any A2A (Agent-to-Agent) compliant agent. Whi
 
 - **Simplified Registry**: A robust `OpenHive` class for discovering and managing A2A-compliant agents.
 - **Flexible Backends**: Easily configure for different storage backends:
-    - **In-Memory (Default)**: Perfect for local development and testing.
-    - **Remote**: Connect to a shared OpenHive registry endpoint.
-    - **SQLite**: A simple, file-based persistent registry.
+  - **In-Memory (Default)**: Perfect for local development and testing.
+  - **Remote**: Connect to a shared OpenHive registry endpoint.
+  - **SQLite**: A simple, file-based persistent registry.
 - **Powerful Query Engine**: A flexible query parser to find agents based on their name, description, or skills.
 
 ## 🚀 Getting Started
@@ -66,7 +66,7 @@ import { OpenHive } from '@open-hive/sdk';
 
 const hive = new OpenHive({
   registryUrl: 'http://localhost:11100', // URL of the remote registry
-  authToken: 'your-optional-auth-token'
+  headers: { Authorization: 'Bearer your-optional-auth-token' },
 });
 
 // All operations will now be performed against the remote registry.
@@ -78,7 +78,7 @@ console.log(agentList);
 
 For persistence across restarts without a dedicated registry server, you can use the `SqliteRegistry`. The `OpenHive` class can be configured to use any compliant registry adapter.
 
-*Note: The `SqliteRegistry` is not included in the main `OpenHive` bundle and needs to be imported separately.*
+_Note: The `SqliteRegistry` is not included in the main `OpenHive` bundle and needs to be imported separately._
 
 ```typescript
 import { OpenHive, SqliteRegistry } from '@open-hive/sdk';

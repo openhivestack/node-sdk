@@ -3,25 +3,27 @@ import debug from 'debug';
 
 const log = debug('openhive:remote-registry');
 
+export interface RemoteRegistryOptions {
+  headers?: Record<string, string>;
+}
+
 export class RemoteRegistry implements AgentRegistry {
   public name: string;
   public endpoint: string;
-  private token?: string;
+  private headers: Record<string, string>;
 
-  constructor(endpoint: string, token?: string) {
+  constructor(endpoint: string, options?: RemoteRegistryOptions) {
     this.name = 'remote';
     this.endpoint = endpoint;
-    this.token = token;
+    this.headers = options?.headers || {};
     log(`Remote registry adapter initialized for endpoint: ${endpoint}`);
   }
 
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...this.headers,
     };
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-    }
     return headers;
   }
 
