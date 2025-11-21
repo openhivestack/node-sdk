@@ -27,7 +27,7 @@ export class RemoteRegistry implements AgentRegistry {
 
   public async add(agent: AgentCard): Promise<AgentCard> {
     log(`Adding agent ${agent.name} to remote registry`);
-    const response = await fetch(`${this.endpoint}/agents`, {
+    const response = await fetch(`${this.endpoint}/agent`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(agent),
@@ -40,7 +40,7 @@ export class RemoteRegistry implements AgentRegistry {
 
   public async get(agentName: string): Promise<AgentCard | null> {
     log(`Getting agent ${agentName} from remote registry`);
-    const response = await fetch(`${this.endpoint}/agents/${agentName}`, {
+    const response = await fetch(`${this.endpoint}/agent/${agentName}`, {
       headers: this.getHeaders(),
     });
     if (response.status === 404) {
@@ -54,7 +54,7 @@ export class RemoteRegistry implements AgentRegistry {
 
   public async search(query: string): Promise<AgentCard[]> {
     log(`Searching for '${query}' in remote registry`);
-    const url = new URL(`${this.endpoint}/agents`);
+    const url = new URL(`${this.endpoint}/agent`);
     url.searchParams.append('q', query);
     const response = await fetch(url.toString(), {
       headers: this.getHeaders(),
@@ -67,7 +67,7 @@ export class RemoteRegistry implements AgentRegistry {
 
   public async list(): Promise<AgentCard[]> {
     log(`Listing agents from remote registry`);
-    const response = await fetch(`${this.endpoint}/agents`, {
+    const response = await fetch(`${this.endpoint}/agent`, {
       headers: this.getHeaders(),
     });
     if (!response.ok) {
@@ -78,7 +78,7 @@ export class RemoteRegistry implements AgentRegistry {
 
   public async delete(agentName: string): Promise<void> {
     log(`Removing agent ${agentName} from remote registry`);
-    const response = await fetch(`${this.endpoint}/agents/${agentName}`, {
+    const response = await fetch(`${this.endpoint}/agent/${agentName}`, {
       method: 'DELETE',
       headers: this.getHeaders(),
     });
@@ -92,7 +92,7 @@ export class RemoteRegistry implements AgentRegistry {
     agentUpdate: Partial<AgentCard>
   ): Promise<AgentCard> {
     log(`Updating agent ${agentName} in remote registry`);
-    const response = await fetch(`${this.endpoint}/agents/${agentName}`, {
+    const response = await fetch(`${this.endpoint}/agent/${agentName}`, {
       method: 'PUT',
       headers: this.getHeaders(),
       body: JSON.stringify(agentUpdate),
