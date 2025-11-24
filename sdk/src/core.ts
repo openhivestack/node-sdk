@@ -4,39 +4,43 @@ import { InMemoryRegistry } from './registry/in-memory.registry';
 import { RemoteRegistry } from './registry/remote.registry';
 import { QueryParser } from './query/engine';
 
-export interface OpenHiveOptions {
+export interface OpenHiveOptions<T = AgentCard> {
   registryUrl?: string;
   headers?: Record<string, string>;
   queryParser?: QueryParser;
-  registry?: AgentRegistry;
+  registry?: AgentRegistry<T>;
 }
 
-export class OpenHive {
-  private _registry: AgentRegistry;
+export class OpenHive<T = AgentCard> {
+  private _registry: AgentRegistry<T>;
 
-  constructor(options: OpenHiveOptions = {}) {
+  constructor(options: OpenHiveOptions<T> = {}) {
     if (options.registry) {
       this._registry = options.registry;
     } else if (options.registryUrl) {
       const headers: Record<string, string> = options.headers || {};
-      this._registry = new RemoteRegistry(options.registryUrl, { headers });
+      // RemoteRegistry implements AgentRegistry<AgentCard>, so we might need a cast if T is different
+      // But default behavior is AgentCard.
+      this._registry = new RemoteRegistry(options.registryUrl, {
+        headers,
+      }) as unknown as AgentRegistry<T>;
     } else {
-      this._registry = new InMemoryRegistry('in-memory', options.queryParser);
+      this._registry = new InMemoryRegistry(
+        'in-memory',
+        options.queryParser
+      ) as unknown as AgentRegistry<T>;
     }
   }
 
-  public async add(agent: AgentCard, ...args: any[]): Promise<AgentCard> {
+  public async add(agent: AgentCard, ...args: any[]): Promise<T> {
     return this._registry.add(agent, ...args);
   }
 
-  public async get(
-    agentName: string,
-    ...args: any[]
-  ): Promise<AgentCard | null> {
+  public async get(agentName: string, ...args: any[]): Promise<T | null> {
     return this._registry.get(agentName, ...args);
   }
 
-  public async list(...args: any[]): Promise<AgentCard[]> {
+  public async list(...args: any[]): Promise<T[]> {
     return this._registry.list(...args);
   }
 
@@ -44,7 +48,7 @@ export class OpenHive {
     agentName: string,
     agent: Partial<AgentCard>,
     ...args: any[]
-  ): Promise<AgentCard> {
+  ): Promise<T> {
     return this._registry.update(agentName, agent, ...args);
   }
 
@@ -52,7 +56,7 @@ export class OpenHive {
     return this._registry.delete(agentName, ...args);
   }
 
-  public async search(query: string, ...args: any[]): Promise<AgentCard[]> {
+  public async search(query: string, ...args: any[]): Promise<T[]> {
     return this._registry.search(query, ...args);
   }
 

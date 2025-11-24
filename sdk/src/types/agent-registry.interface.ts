@@ -21,14 +21,18 @@ export interface AgentCard {
   };
 }
 
-export interface AgentRegistry {
+export interface AgentRegistry<T = AgentCard> {
   name: string;
-  add(agent: AgentCard, ...args: any[]): Promise<AgentCard>;
-  get(agentName: string, ...args: any[]): Promise<AgentCard | null>;
-  search(query: string, ...args: any[]): Promise<AgentCard[]>;
-  list(...args: any[]): Promise<AgentCard[]>;
+  add(agent: AgentCard, ...args: any[]): Promise<T>;
+  get(agentName: string, ...args: any[]): Promise<T | null>;
+  search(query: string, ...args: any[]): Promise<T[]>;
+  list(...args: any[]): Promise<T[]>;
   delete(agentName: string, ...args: any[]): Promise<void>;
-  update(agentName: string, agent: Partial<AgentCard>, ...args: any[]): Promise<AgentCard>;
+  update(
+    agentName: string,
+    agent: Partial<AgentCard>,
+    ...args: any[]
+  ): Promise<T>;
   clear(...args: any[]): Promise<void>;
   close(...args: any[]): Promise<void>;
 }

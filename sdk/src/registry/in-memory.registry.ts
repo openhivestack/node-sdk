@@ -29,7 +29,10 @@ export class InMemoryRegistry implements AgentRegistry {
     return agent;
   }
 
-  public async get(agentName: string, ...args: any[]): Promise<AgentCard | null> {
+  public async get(
+    agentName: string,
+    ...args: any[]
+  ): Promise<AgentCard | null> {
     log(`Getting agent ${agentName} from registry '${this.name}'`);
     const agent = this.db.get(agentName);
     return agent ? { ...agent } : null;

@@ -145,6 +145,16 @@ All registry methods (`add`, `get`, `list`, `search`, `update`, `delete`, `clear
 await hive.add(myAgent, { transactionId: 'tx-123' });
 ```
 
+The `OpenHive` class and `AgentRegistry` interface now also support a generic return type. This is useful if you are implementing a custom registry that returns an object extending `AgentCard` or a completely different type.
+
+```typescript
+// Initialize with a custom return type
+const hive = new OpenHive<MyCustomAgentType>({ registry: myCustomRegistry });
+
+// The add method will now return Promise<MyCustomAgentType>
+const result = await hive.add(myAgent);
+```
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) to get started.
