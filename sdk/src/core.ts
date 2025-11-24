@@ -25,34 +25,38 @@ export class OpenHive {
     }
   }
 
-  public async add(agent: AgentCard): Promise<AgentCard> {
-    return this._registry.add(agent);
+  public async add(agent: AgentCard, ...args: any[]): Promise<AgentCard> {
+    return this._registry.add(agent, ...args);
   }
 
-  public async get(agentName: string): Promise<AgentCard | null> {
-    return this._registry.get(agentName);
+  public async get(
+    agentName: string,
+    ...args: any[]
+  ): Promise<AgentCard | null> {
+    return this._registry.get(agentName, ...args);
   }
 
-  public async list(): Promise<AgentCard[]> {
-    return this._registry.list();
+  public async list(...args: any[]): Promise<AgentCard[]> {
+    return this._registry.list(...args);
   }
 
   public async update(
     agentName: string,
-    agent: Partial<AgentCard>
+    agent: Partial<AgentCard>,
+    ...args: any[]
   ): Promise<AgentCard> {
-    return this._registry.update(agentName, agent);
+    return this._registry.update(agentName, agent, ...args);
   }
 
-  public async delete(agentName: string): Promise<void> {
-    return this._registry.delete(agentName);
+  public async delete(agentName: string, ...args: any[]): Promise<void> {
+    return this._registry.delete(agentName, ...args);
   }
 
-  public async search(query: string): Promise<AgentCard[]> {
-    return this._registry.search(query);
+  public async search(query: string, ...args: any[]): Promise<AgentCard[]> {
+    return this._registry.search(query, ...args);
   }
 
-  public async close(): Promise<void> {
-    return this._registry.close();
+  public async close(...args: any[]): Promise<void> {
+    return this._registry.close(...args);
   }
 }

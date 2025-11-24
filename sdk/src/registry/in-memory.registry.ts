@@ -16,7 +16,7 @@ export class InMemoryRegistry implements AgentRegistry {
     log(`In-memory registry '${name}' initialized`);
   }
 
-  public async add(agent: AgentCard): Promise<AgentCard> {
+  public async add(agent: AgentCard, ...args: any[]): Promise<AgentCard> {
     // Ensure name is unique before adding
     for (const existingAgent of this.db.values()) {
       if (existingAgent.name === agent.name) {
@@ -29,13 +29,13 @@ export class InMemoryRegistry implements AgentRegistry {
     return agent;
   }
 
-  public async get(agentName: string): Promise<AgentCard | null> {
+  public async get(agentName: string, ...args: any[]): Promise<AgentCard | null> {
     log(`Getting agent ${agentName} from registry '${this.name}'`);
     const agent = this.db.get(agentName);
     return agent ? { ...agent } : null;
   }
 
-  public async search(query: string): Promise<AgentCard[]> {
+  public async search(query: string, ...args: any[]): Promise<AgentCard[]> {
     log(`Searching for '${query}' in registry '${this.name}'`);
     const parsedQuery = this.queryParser.parse(query);
     const agents = Array.from(this.db.values());
@@ -84,19 +84,20 @@ export class InMemoryRegistry implements AgentRegistry {
     return results;
   }
 
-  public async list(): Promise<AgentCard[]> {
+  public async list(...args: any[]): Promise<AgentCard[]> {
     log(`Listing all agents in registry '${this.name}'`);
     return Array.from(this.db.values());
   }
 
-  public async delete(agentName: string): Promise<void> {
+  public async delete(agentName: string, ...args: any[]): Promise<void> {
     log(`Removing agent ${agentName} from registry '${this.name}'`);
     this.db.delete(agentName);
   }
 
   public async update(
     agentName: string,
-    agentUpdate: Partial<AgentCard>
+    agentUpdate: Partial<AgentCard>,
+    ...args: any[]
   ): Promise<AgentCard> {
     log(`Updating agent ${agentName} in registry '${this.name}'`);
     const existingAgent = this.db.get(agentName);
@@ -108,12 +109,12 @@ export class InMemoryRegistry implements AgentRegistry {
     return updatedAgent;
   }
 
-  public async clear(): Promise<void> {
+  public async clear(...args: any[]): Promise<void> {
     log(`Clearing all agents from registry '${this.name}'`);
     this.db.clear();
   }
 
-  public async close(): Promise<void> {
+  public async close(...args: any[]): Promise<void> {
     log(`Closing registry '${this.name}'`);
     this.db.clear();
   }

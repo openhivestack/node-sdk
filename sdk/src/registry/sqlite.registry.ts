@@ -39,7 +39,7 @@ export class SqliteRegistry implements AgentRegistry {
     `);
   }
 
-  public async add(agent: AgentCard): Promise<AgentCard> {
+  public async add(agent: AgentCard, ...args: any[]): Promise<AgentCard> {
     const skillsJson = JSON.stringify(agent.skills);
     const sql = `
       INSERT INTO agents (name, description, protocolVersion, version, url, skills)
@@ -66,7 +66,7 @@ export class SqliteRegistry implements AgentRegistry {
     }
   }
 
-  public async get(agentName: string): Promise<AgentCard | null> {
+  public async get(agentName: string, ...args: any[]): Promise<AgentCard | null> {
     const sql = 'SELECT * FROM agents WHERE name = ?';
     const row = this.db.prepare(sql).get(agentName) as any;
     if (!row) {
@@ -75,13 +75,13 @@ export class SqliteRegistry implements AgentRegistry {
     return { ...row, skills: JSON.parse(row.skills) };
   }
 
-  public async list(): Promise<AgentCard[]> {
+  public async list(...args: any[]): Promise<AgentCard[]> {
     const sql = 'SELECT * FROM agents';
     const rows = this.db.prepare(sql).all() as any[];
     return rows.map((row) => ({ ...row, skills: JSON.parse(row.skills) }));
   }
 
-  public async search(query: string): Promise<AgentCard[]> {
+  public async search(query: string, ...args: any[]): Promise<AgentCard[]> {
     const agents = await this.list();
     if (!query || query.trim() === '') {
       return agents;
@@ -125,7 +125,7 @@ export class SqliteRegistry implements AgentRegistry {
     });
   }
 
-  public async delete(agentName: string): Promise<void> {
+  public async delete(agentName: string, ...args: any[]): Promise<void> {
     const sql = 'DELETE FROM agents WHERE name = ?';
     this.db.prepare(sql).run(agentName);
     log(`Agent ${agentName} deleted from SQLite registry`);
@@ -133,7 +133,8 @@ export class SqliteRegistry implements AgentRegistry {
 
   public async update(
     agentName: string,
-    agentUpdate: Partial<AgentCard>
+    agentUpdate: Partial<AgentCard>,
+    ...args: any[]
   ): Promise<AgentCard> {
     const existingAgent = await this.get(agentName);
     if (!existingAgent) {
@@ -162,13 +163,13 @@ export class SqliteRegistry implements AgentRegistry {
     return updatedAgent;
   }
 
-  public async clear(): Promise<void> {
+  public async clear(...args: any[]): Promise<void> {
     const sql = 'DELETE FROM agents';
     this.db.prepare(sql).run();
     log('SQLite registry cleared');
   }
 
-  public async close(): Promise<void> {
+  public async close(...args: any[]): Promise<void> {
     this.db.close();
     log('SQLite database connection closed');
   }

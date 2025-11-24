@@ -23,12 +23,12 @@ export interface AgentCard {
 
 export interface AgentRegistry {
   name: string;
-  add(agent: AgentCard): Promise<AgentCard>;
-  get(agentName: string): Promise<AgentCard | null>;
-  search(query: string): Promise<AgentCard[]>;
-  list(): Promise<AgentCard[]>;
-  delete(agentName: string): Promise<void>;
-  update(agentName: string, agent: Partial<AgentCard>): Promise<AgentCard>;
-  clear(): Promise<void>;
-  close(): Promise<void>;
+  add(agent: AgentCard, ...args: any[]): Promise<AgentCard>;
+  get(agentName: string, ...args: any[]): Promise<AgentCard | null>;
+  search(query: string, ...args: any[]): Promise<AgentCard[]>;
+  list(...args: any[]): Promise<AgentCard[]>;
+  delete(agentName: string, ...args: any[]): Promise<void>;
+  update(agentName: string, agent: Partial<AgentCard>, ...args: any[]): Promise<AgentCard>;
+  clear(...args: any[]): Promise<void>;
+  close(...args: any[]): Promise<void>;
 }

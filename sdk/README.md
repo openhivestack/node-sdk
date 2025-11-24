@@ -136,6 +136,15 @@ Combine multiple filters to create more specific queries.
 const results = await hive.search('name:MyAwesomeAgent skill:chat');
 ```
 
+## 🔧 Extensibility
+
+All registry methods (`add`, `get`, `list`, `search`, `update`, `delete`, `clear`) now accept additional arguments (`...args`), allowing you to pass custom options or context to your registry implementation.
+
+```typescript
+// Example: Passing a transaction ID to a custom registry
+await hive.add(myAgent, { transactionId: 'tx-123' });
+```
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) to get started.

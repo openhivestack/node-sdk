@@ -27,7 +27,7 @@ export class RemoteRegistry implements AgentRegistry {
     return headers;
   }
 
-  public async add(agent: AgentCard): Promise<AgentCard> {
+  public async add(agent: AgentCard, ...args: any[]): Promise<AgentCard> {
     log(`Adding agent ${agent.name} to remote registry`);
     const response = await fetch(`${this.endpoint}/agent`, {
       method: 'POST',
@@ -40,7 +40,7 @@ export class RemoteRegistry implements AgentRegistry {
     return response.json() as Promise<AgentCard>;
   }
 
-  public async get(agentName: string): Promise<AgentCard | null> {
+  public async get(agentName: string, ...args: any[]): Promise<AgentCard | null> {
     log(`Getting agent ${agentName} from remote registry`);
     const response = await fetch(`${this.endpoint}/agent/${agentName}`, {
       headers: this.getHeaders(),
@@ -54,7 +54,7 @@ export class RemoteRegistry implements AgentRegistry {
     return response.json() as Promise<AgentCard | null>;
   }
 
-  public async search(query: string): Promise<AgentCard[]> {
+  public async search(query: string, ...args: any[]): Promise<AgentCard[]> {
     log(`Searching for '${query}' in remote registry`);
     const url = new URL(`${this.endpoint}/agent`);
     url.searchParams.append('q', query);
@@ -67,7 +67,7 @@ export class RemoteRegistry implements AgentRegistry {
     return response.json() as Promise<AgentCard[]>;
   }
 
-  public async list(): Promise<AgentCard[]> {
+  public async list(...args: any[]): Promise<AgentCard[]> {
     log(`Listing agents from remote registry`);
     const response = await fetch(`${this.endpoint}/agent`, {
       headers: this.getHeaders(),
@@ -78,7 +78,7 @@ export class RemoteRegistry implements AgentRegistry {
     return response.json() as Promise<AgentCard[]>;
   }
 
-  public async delete(agentName: string): Promise<void> {
+  public async delete(agentName: string, ...args: any[]): Promise<void> {
     log(`Removing agent ${agentName} from remote registry`);
     const response = await fetch(`${this.endpoint}/agent/${agentName}`, {
       method: 'DELETE',
@@ -91,7 +91,8 @@ export class RemoteRegistry implements AgentRegistry {
 
   public async update(
     agentName: string,
-    agentUpdate: Partial<AgentCard>
+    agentUpdate: Partial<AgentCard>,
+    ...args: any[]
   ): Promise<AgentCard> {
     log(`Updating agent ${agentName} in remote registry`);
     const response = await fetch(`${this.endpoint}/agent/${agentName}`, {
@@ -105,12 +106,12 @@ export class RemoteRegistry implements AgentRegistry {
     return response.json() as Promise<AgentCard>;
   }
 
-  public async clear(): Promise<void> {
+  public async clear(...args: any[]): Promise<void> {
     log(`Clear operation is not supported on a remote registry.`);
     throw new Error('Clear operation is not supported on a remote registry.');
   }
 
-  public async close(): Promise<void> {
+  public async close(...args: any[]): Promise<void> {
     log(`No-op for remote registry close`);
     return Promise.resolve();
   }
