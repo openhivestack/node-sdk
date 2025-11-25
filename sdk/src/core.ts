@@ -7,6 +7,8 @@ import { QueryParser } from './query/engine';
 export interface OpenHiveOptions<T = AgentCard> {
   registryUrl?: string;
   headers?: Record<string, string>;
+  apiKey?: string;
+  accessToken?: string;
   queryParser?: QueryParser;
   registry?: AgentRegistry<T>;
 }
@@ -23,6 +25,8 @@ export class OpenHive<T = AgentCard> {
       // But default behavior is AgentCard.
       this._registry = new RemoteRegistry(options.registryUrl, {
         headers,
+        apiKey: options.apiKey,
+        accessToken: options.accessToken,
       }) as unknown as AgentRegistry<T>;
     } else {
       this._registry = new InMemoryRegistry(
@@ -40,8 +44,11 @@ export class OpenHive<T = AgentCard> {
     return this._registry.get(agentName, ...args);
   }
 
-  public async list(...args: any[]): Promise<T[]> {
-    return this._registry.list(...args);
+  public async list(
+    options?: { page?: number; limit?: number },
+    ...args: any[]
+  ): Promise<T[]> {
+    return this._registry.list(options, ...args);
   }
 
   public async update(
@@ -56,11 +63,58 @@ export class OpenHive<T = AgentCard> {
     return this._registry.delete(agentName, ...args);
   }
 
-  public async search(query: string, ...args: any[]): Promise<T[]> {
-    return this._registry.search(query, ...args);
+  public async search(
+    query: string,
+    options?: { page?: number; limit?: number },
+    ...args: any[]
+  ): Promise<T[]> {
+    return this._registry.search(query, options, ...args);
   }
 
   public async close(...args: any[]): Promise<void> {
     return this._registry.close(...args);
+  }
+
+  // Extended Platform Methods
+  public async completeUpload(agent: any): Promise<any> {
+    if (this._registry.completeUpload) {
+      return this._registry.completeUpload(agent);
+    }
+    throw new Error('Registry does not support completeUpload');
+  }
+
+  public async deployAgent(agentName: string): Promise<any> {
+    if (this._registry.deployAgent) {
+      return this._registry.deployAgent(agentName);
+    }
+    throw new Error('Registry does not support deployAgent');
+  }
+
+  public async getAgentDownload(agentName: string, versionOrTag = 'latest'): Promise<any> {
+    if (this._registry.getAgentDownload) {
+      return this._registry.getAgentDownload(agentName, versionOrTag);
+    }
+    throw new Error('Registry does not support getAgentDownload');
+  }
+
+  public async getCurrentUser(): Promise<any> {
+    if (this._registry.getCurrentUser) {
+      return this._registry.getCurrentUser();
+    }
+    throw new Error('Registry does not support getCurrentUser');
+  }
+
+  public async requestUploadUrl(agent: any, force: boolean): Promise<any> {
+    if (this._registry.requestUploadUrl) {
+      return this._registry.requestUploadUrl(agent, force);
+    }
+    throw new Error('Registry does not support requestUploadUrl');
+  }
+
+  public async revokeApiKey(token: string): Promise<void> {
+    if (this._registry.revokeApiKey) {
+      return this._registry.revokeApiKey(token);
+    }
+    throw new Error('Registry does not support revokeApiKey');
   }
 }

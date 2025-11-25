@@ -35,4 +35,14 @@ export interface AgentRegistry<T = AgentCard> {
   ): Promise<T>;
   clear(...args: any[]): Promise<void>;
   close(...args: any[]): Promise<void>;
+
+  // Optional extended methods for platform-specific features
+  // Using optional methods allows the interface to remain compatible with simple registries
+  // while supporting advanced features in RemoteRegistry.
+  completeUpload?(agent: any): Promise<any>;
+  deployAgent?(agentName: string): Promise<any>;
+  getAgentDownload?(agentName: string, versionOrTag?: string): Promise<any>;
+  getCurrentUser?(): Promise<any>;
+  requestUploadUrl?(agent: any, force: boolean): Promise<any>;
+  revokeApiKey?(token: string): Promise<void>;
 }

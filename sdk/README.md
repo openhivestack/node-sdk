@@ -69,9 +69,56 @@ const hive = new OpenHive({
   headers: { Authorization: 'Bearer your-optional-auth-token' },
 });
 
+// You can also authenticate using an API key or specific Access Token:
+// const hive = new OpenHive({
+//   registryUrl: 'http://localhost:11100',
+//   apiKey: 'your-api-key',
+// });
+//
+// const hive = new OpenHive({
+//   registryUrl: 'http://localhost:11100',
+//   accessToken: 'your-access-token',
+// });
+
 // All operations will now be performed against the remote registry.
 const agentList = await hive.list();
 console.log(agentList);
+```
+
+### Pagination
+
+The `list` and `search` methods now support pagination options when using the `RemoteRegistry`.
+
+```typescript
+// Get the first 10 agents
+const agents = await hive.list({ page: 1, limit: 10 });
+
+// Search with pagination
+const results = await hive.search('skill:chat', { page: 1, limit: 5 });
+```
+
+### Platform Integration
+
+The SDK includes extended methods for interacting with the OpenHive Platform. These methods are available when using a compatible `RemoteRegistry`.
+
+```typescript
+// Complete an agent upload
+await hive.completeUpload(agentData);
+
+// Trigger a deployment
+await hive.deployAgent('agent-name');
+
+// Get a download URL for an agent
+const downloadInfo = await hive.getAgentDownload('agent-name', '1.0.0');
+
+// Get current user information
+const user = await hive.getCurrentUser();
+
+// Request an upload URL
+const uploadInfo = await hive.requestUploadUrl(agentData, false);
+
+// Revoke an API key
+await hive.revokeApiKey('your-api-key');
 ```
 
 ### SQLite Registry
