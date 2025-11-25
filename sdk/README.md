@@ -10,7 +10,6 @@ This SDK is designed to complement any A2A (Agent-to-Agent) compliant agent. Whi
 - **Flexible Backends**: Easily configure for different storage backends:
   - **In-Memory (Default)**: Perfect for local development and testing.
   - **Remote**: Connect to a shared OpenHive registry endpoint.
-  - **SQLite**: A simple, file-based persistent registry.
 - **Powerful Query Engine**: A flexible query parser to find agents based on their name, description, or skills.
 
 ## 🚀 Getting Started
@@ -123,18 +122,22 @@ await hive.revokeApiKey('your-api-key');
 
 ### SQLite Registry
 
-For persistence across restarts without a dedicated registry server, you can use the `SqliteRegistry`. The `OpenHive` class can be configured to use any compliant registry adapter.
+For persistence across restarts without a dedicated registry server, you can use a `SqliteRegistry`. The `OpenHive` class can be configured to use any compliant registry adapter.
 
-_Note: The `SqliteRegistry` is not included in the main `OpenHive` bundle and needs to be imported separately._
+_Note: The `SqliteRegistry` is no longer included in the main `OpenHive` bundle to keep the SDK lightweight. You can implement your own using the `AgentRegistry` interface._
 
 ```typescript
-import { OpenHive, SqliteRegistry } from '@open-hive/sdk';
+import { OpenHive, AgentRegistry, AgentCard } from '@open-hive/sdk';
 
-// 1. Create an instance of the SqliteRegistry.
-const sqliteRegistry = new SqliteRegistry('main-db', './agents.db');
+// 1. Implement your own SqliteRegistry class
+class MySqliteRegistry implements AgentRegistry {
+  // ... implementation using 'better-sqlite3' or similar
+}
 
 // 2. Pass the custom registry to the OpenHive constructor.
-const hive = new OpenHive({ registry: sqliteRegistry });
+const hive = new OpenHive({
+  registry: new MySqliteRegistry('local', './agents.db'),
+});
 
 // The agent will now use the SQLite database for all registry operations.
 await hive.add({
